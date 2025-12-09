@@ -13,3 +13,6 @@ saved/
 docs/build/
 wandb/*
 /ray_log*
+
+# Environments
+.venv

@@ -1,55 +1,50 @@
-# @Time   : 2020/7/20
-# @Author : Shanlei Mu
-# @Email  : slmu@ruc.edu.cn
+import logging
+from logging import getLogger
+from recbole.config import Config
+from recbole.data import create_dataset, data_preparation
+from recbole.model.sequential_recommender import GRU4Rec, NARM
+from recbole.trainer import Trainer
+from recbole.utils import init_seed, init_logger
 
-# UPDATE
-# @Time   : 2022/7/8, 2020/10/3, 2020/10/1
-# @Author : Zhen Tian, Yupeng Hou, Zihan Lin
-# @Email  : chenyuwuxinn@gmail.com, houyupeng@ruc.edu.cn, zhlin@ruc.edu.cn
 
-import argparse
+parameter_dict = {
+    'train_neg_sample_args': None,
+    'neg_sampling': None
+}
 
-from recbole.quick_start import run
+config = Config(model='NARM', dataset='data', config_dict=parameter_dict)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-m", type=str, default="BPR", help="name of models")
-    parser.add_argument(
-        "--dataset", "-d", type=str, default="ml-100k", help="name of datasets"
-    )
-    parser.add_argument("--config_files", type=str, default=None, help="config files")
-    parser.add_argument(
-        "--nproc", type=int, default=1, help="the number of process in this group"
-    )
-    parser.add_argument(
-        "--ip", type=str, default="localhost", help="the ip of master node"
-    )
-    parser.add_argument(
-        "--port", type=str, default="5678", help="the port of master node"
-    )
-    parser.add_argument(
-        "--world_size", type=int, default=-1, help="total number of jobs"
-    )
-    parser.add_argument(
-        "--group_offset",
-        type=int,
-        default=0,
-        help="the global rank offset of this group",
-    )
 
-    args, _ = parser.parse_known_args()
+init_seed(config['seed'], config['reproducibility'])
 
-    config_file_list = (
-        args.config_files.strip().split(" ") if args.config_files else None
-    )
 
-    run(
-        args.model,
-        args.dataset,
-        config_file_list=config_file_list,
-        nproc=args.nproc,
-        world_size=args.world_size,
-        ip=args.ip,
-        port=args.port,
-        group_offset=args.group_offset,
-    )
+init_logger(config)
+logger = getLogger()
+
+c_handler = logging.StreamHandler()
+c_handler.setLevel(logging.INFO)
+logger.addHandler(c_handler)
+
+
+logger.info(config)
+
+dataset = create_dataset(config)
+logger.info(dataset)
+
+train_data, valid_data, test_data = data_preparation(config, dataset)
+
+model = NARM(config, train_data.dataset).to(config['device'])
+logger.info(model)
+
+
+trainer = Trainer(config, model)
+
+
+best_valid_score, best_valid_result = trainer.fit(
+    train_data,
+    valid_data,
+    show_progress=True
+)
+
+print(best_valid_score, best_valid_result)
+
