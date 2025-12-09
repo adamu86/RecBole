@@ -12,7 +12,7 @@ parameter_dict = {
     'neg_sampling': None
 }
 
-config = Config(model='NARM', dataset='data', config_dict=parameter_dict)
+config = Config(model='GRU4Rec', dataset='data', config_dict=parameter_dict)
 
 
 init_seed(config['seed'], config['reproducibility'])
@@ -33,7 +33,7 @@ logger.info(dataset)
 
 train_data, valid_data, test_data = data_preparation(config, dataset)
 
-model = NARM(config, train_data.dataset).to(config['device'])
+model = GRU4Rec(config, train_data.dataset).to(config['device'])
 logger.info(model)
 
 
