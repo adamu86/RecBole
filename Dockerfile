@@ -36,4 +36,6 @@ WORKDIR /root/RecBole
 
 RUN mamba env update -n base -f conda/environment.yml -y
 
+RUN rm Dockerfile && rm .gitignore && rm init.bat
+
 CMD ["/bin/bash"]
