@@ -16,3 +16,6 @@ wandb/*
 
 # Environments
 .venv
+
+# Other
+README.md
