@@ -347,3 +347,11 @@ RecBole uses [MIT License](./LICENSE). All data and code in this project can onl
 ## Acknowledgments
 
 This project was supported by National Natural Science Foundation of China (No. 61832017).
+
+--------------------------------------------------------------------------------
+
+Download only essential files for initialization environemnt in Docker (Windows)
+
+```bash
+curl -L -o Dockerfile https://raw.githubusercontent.com/adamu86/RecBole/main/Dockerfile && curl -L -o init.bat https://raw.githubusercontent.com/adamu86/RecBole/main/init.bat
+```
