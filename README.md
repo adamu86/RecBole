@@ -353,5 +353,5 @@ This project was supported by National Natural Science Foundation of China (No. 
 Download only essential files for initialization environemnt in Docker (Windows)
 
 ```bash
-curl -L -o Dockerfile https://raw.githubusercontent.com/adamu86/RecBole/main/Dockerfile && curl -L -o init.bat https://raw.githubusercontent.com/adamu86/RecBole/main/init.bat
+curl -L -o Dockerfile https://raw.githubusercontent.com/adamu86/RecBole/session-based/Dockerfile && curl -L -o init.bat https://raw.githubusercontent.com/adamu86/RecBole/session-based/init.bat
 ```
