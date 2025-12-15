@@ -34,7 +34,7 @@ RUN git clone --branch session-based https://github.com/adamu86/RecBole.git
 
 WORKDIR /root/RecBole
 
-RUN mamba env update -n base -f conda/environment.yml -y
+RUN mamba env update -n base -f _setup/environment.yml -y
 
 RUN rm -f Dockerfile init.bat requirements.txt README.md
 
