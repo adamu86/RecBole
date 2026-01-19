@@ -12,7 +12,7 @@ parameter_dict = {
     'neg_sampling': None
 }
 
-config = Config(model='GRU4Rec', dataset='data', config_dict=parameter_dict)
+config = Config(model='GRU4Rec', dataset='lastfm', config_dict=parameter_dict)
 
 
 init_seed(config['seed'], config['reproducibility'])
