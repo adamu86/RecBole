@@ -38,4 +38,8 @@ RUN mamba env create -f _setup/environment.yml -y
 
 RUN rm -f Dockerfile init.bat requirements.txt README.md
 
+RUN bash -c "source ${CONDA_DIR}/bin/activate recbole && \
+    pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu130 && \
+    pip install numpy==1.24.4"
+
 CMD ["bash", "-c", "source ${CONDA_DIR}/bin/activate recbole && exec bash"]
