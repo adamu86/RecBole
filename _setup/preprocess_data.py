@@ -1,44 +1,52 @@
 import json
-import os
 import pandas as pd
+import os
+import hashlib
 
-with open('lastfm_data/recent_tracks.json', 'r', encoding='utf-8') as f:
-    data = json.load(f)
+class LastFMMapper:
+    def __init__(self, json_path):
+        with open(json_path, 'r', encoding='utf-8') as f:
+            self.data = json.load(f)
 
-filtered_data = {user: tracks for user, tracks in data.items() if len(tracks) >= 10}
+    def _hash_to_int(self, s):
+        h = hashlib.md5(s.encode('utf-8')).hexdigest()[:8]
+        return int(h, 16)
 
-user_map = {user: i+1 for i, user in enumerate(filtered_data.keys())}
-item_map = {}
-item_counter = 1
+    def user_to_token(self, user):
+        return self._hash_to_int(user)
 
-rows = []
-for user, tracks in list(filtered_data.items())[:1000]:
-    for entry in tracks:
-        if not entry:
-            continue
+    def item_to_token(self, name, artist):
+        key = f"{name} - {artist}"
+        return self._hash_to_int(key)
 
-        name, artist, ts = entry.split("╎")
+    def token_to_item(self, token, reverse_map):
+        return reverse_map.get(token)
 
-        item_key = f"{name} - {artist}"
+    def process_dataset(self, take_half=True):
+        rows = []
+        reverse_map_user = {}
+        reverse_map_item = {}
 
-        if item_key not in item_map:
-            item_map[item_key] = item_counter
-            item_counter += 1
+        items = list(self.data.items())
+        if take_half:
+            items = items[:len(items)//2]
 
-        rows.append([user_map[user], item_map[item_key], int(ts)])
+        for user, tracks in items:
+            user_token = self.user_to_token(user)
+            reverse_map_user[user_token] = user
 
-df = pd.DataFrame(
-    rows, 
-    columns=['user_id:token', 'item_id:token', 'timestamp:float']
-)
+            for entry in tracks:
+                if not entry:
+                    continue
+                name, artist, ts = entry.split("╎")
+                item_token = self.item_to_token(name, artist)
+                reverse_map_item[item_token] = f"{name} - {artist}"
+                rows.append([user_token, item_token, int(ts)])
 
-os.makedirs(
-    name='dataset/lastfm', 
-    exist_ok=True
-)
-
-df.to_csv(
-    path_or_buf='dataset/lastfm/lastfm.inter', 
-    index=False,
-    sep="\t"
-)
+        df = pd.DataFrame(
+            rows,
+            columns=['user_id:token', 'item_id:token', 'timestamp:float']
+        )
+        os.makedirs('dataset/lastfm', exist_ok=True)
+        df.to_csv('dataset/lastfm/lastfm.inter', index=False, sep="\t")
+        return df, reverse_map_user, reverse_map_item
