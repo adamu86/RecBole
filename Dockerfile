@@ -33,10 +33,8 @@ RUN git clone --branch session-based https://github.com/adamu86/RecBole.git
 
 WORKDIR /root/RecBole
 
-RUN mamba env update -n base -f _setup/environment.yml -y
 RUN mamba env create -f _setup/environment.yml -y
 
 RUN rm -f Dockerfile init.bat requirements.txt README.md
 
-CMD ["/bin/bash"]
 CMD ["bash", "-c", "source ${CONDA_DIR}/bin/activate recbole && exec bash"]
