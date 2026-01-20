@@ -50,3 +50,8 @@ class LastFMMapper:
         os.makedirs('dataset/lastfm', exist_ok=True)
         df.to_csv('dataset/lastfm/lastfm.inter', index=False, sep="\t")
         return df, reverse_map_user, reverse_map_item
+    
+
+if __name__ == "__main__":
+    mapper = LastFMMapper('lastfm_data/recent_tracks.json')
+    df, rev_user, rev_item = mapper.process_dataset()

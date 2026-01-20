@@ -20,3 +20,4 @@ wandb/*
 # Other
 README.md
 /dataset
+/dataset_raw/*
