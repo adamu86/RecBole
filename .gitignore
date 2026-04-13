@@ -13,3 +13,8 @@ saved/
 docs/build/
 wandb/*
 /ray_log*
+
+.venv
+log
+dataset/*
+dataset_raw/*
