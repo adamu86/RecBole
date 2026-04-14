@@ -25,14 +25,14 @@ import torch # type: ignore
 
 
 config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
-    model_file="saved/GRU4Rec-Apr-13-2026_13-36-59.pth"
+    model_file="saved/GRU4Rec-Apr-13-2026_22-34-50.pth"
 )
 
 model = model.to('cpu').eval()
 
-id3 = dataset.token2id('item_id', '1030592') # Rick Astley Never Gonna Give You Up
-id1 = dataset.token2id('item_id', '687219') # Queen Don'T Stop Me Now
-id2 = dataset.token2id('item_id', '3342934') # Frank Sinatra	Fly Me To The Moon
+id3 = dataset.token2id('item_id', '2691881')
+id1 = dataset.token2id('item_id', '959764')
+id2 = dataset.token2id('item_id', '1565034')
 
 interaction = Interaction({
     'item_id_list': torch.tensor([[id1, id2, id3]]),
@@ -55,26 +55,8 @@ for seq in train_data.dataset.inter_feat['item_id_list']:
     for item in seq.tolist():
         pop[item] += 1
 
-top_pop = set([x for x, _ in pop.most_common(1000)])
+top_pop = set([x for x, _ in pop.most_common(10000)])
 
 hits = sum([1 for i in top_item_ids.tolist() if i in top_pop])
 
 print("Popularity bias:", hits / len(top_item_ids))
-
-
-
-# 1030592	1413969893	0.71
-# 823152	30219	1030592	1413969893	1.0
-# 823152	30219	1030631	1413969893	1.27
-# 823152	30219	1030592	1413969893	0.96
-# 823152	30219	1030592	1413969893	1.83
-# 1518301	11816	1187828	1413969899	1.0
-# 1518301	11816	1187702	1413969899	2.0
-# 1518301	11816	687219	1413969899	2.0
-# 1518301	11816	687245	1413969899	1.03
-# 1348834	8575	3244358	1413969934	0.99
-# 1348834	8575	2570572	1413969934	1.93
-# 1358663	12695	1201484	1413969959	0.93
-# 1358663	12695	3004215	1413969959	1.2
-# 1358663	12695	3004453	1413969959	0.97
-# 1358663	12695	3004226	

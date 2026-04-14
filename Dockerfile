@@ -30,7 +30,7 @@ RUN wget -q "https://github.com/conda-forge/miniforge/releases/download/25.11.0-
     conda clean -afy && \
     conda init bash
 
-RUN git clone https://github.com/adamu86/RecBole.git
+RUN git clone --branch workdir https://github.com/adamu86/RecBole.git
 
 WORKDIR /root/RecBole
 

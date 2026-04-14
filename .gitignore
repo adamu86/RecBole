@@ -2,7 +2,7 @@
 /saved*
 *.pth
 
-.vscode/
+
 .idea/
 *.pyc
 *.log
@@ -18,3 +18,6 @@ wandb/*
 log
 dataset/*
 dataset_raw/*
+dataset_temp/*
+dataset_processed/*
+

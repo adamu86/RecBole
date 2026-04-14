@@ -1,0 +1,25 @@
+{
+  "files.exclude": {
+    ".github": true,
+    "**/__pycache__": true,
+    "**/.idea": true,
+    "**/.venv": true,
+    "**/*.cfg": true,
+    "**/hyper.test": true,
+    "**/LICENSE": true,
+    "**/log*": true,
+    "asset": true,
+    "conda": true,
+    "docs": true,
+    "MANIFEST.in": true,
+    "README*": true,
+    "run_example": true,
+    "setup.py": true,
+    "requirements.txt": true,
+    "significance_test.py": true,
+    "run_test.sh": true,
+    "run_recbole_group.py": true,
+    "tests": true,
+    "run_hyper.py": true
+  }
+}

@@ -1,214 +1,207 @@
 import json
-import re
 import os
-import sys
-from typing import Counter
+import shutil
+from collections import Counter
 from tqdm import tqdm
 
+DATA_PATH_RAW = "dataset_raw/"
+DATA_PATH_TEMP = "dataset_temp/"
+DATA_PATH_PROCESSED = "dataset_processed/"
+DATA_FILE = "sessions"
 
-# entities
-albums = "entites/albums.idomaar"
-persons = "entites/persons.idomaar"
-playlist = "entites/playlist.idomaar"
-tags = "entites/tags.idomaar"
-tracks = "entites/tracks.idomaar"
-users = "entites/users.idomaar"
+MIN_TRACK_PLAYCOUNT = 2
+MIN_SESSION_LENGTH = 2
 
-# relations
-sessions = "relations/sessions.idomaar"
-love = "relations/love.idomaar"
-events = "relations/events.idomaar"
+DAYS_FROM_MAX = 5
+DAYS_TO_MAX = 0
 
-# output directory
-output_dir = "processed/"
+def get_data_file_path(data_path, data_file, file_extension=".tsv"):
+    return os.path.join(data_path, f"{data_file}{file_extension}")
 
-# sessions process section
-min_playcount = 5
-min_tracks = 2
+def get_line_count(file_path): 
+    with open(file_path, "r", encoding="utf-8") as f:
+        return sum(1 for _ in f)
 
-with open(sessions, "r", encoding="utf-8") as f:
-    total_lines = sum(1 for _ in f)
+def remove_temp_file():
+    temp_file_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    if os.path.exists(temp_file_path):
+        os.remove(temp_file_path)
 
-def get_ts(line):
-    try:
-        return int(line[len("event.session\t"):].split("\t")[1])
-    except (IndexError, ValueError):
-        return None
+def initialize():
+    print("\nInitializing data...")
+    
+    input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE, file_extension=".idomaar")
+    output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
-tmp_file = sessions + ".tmp"
-
-with open(sessions, "r", encoding="utf-8") as f:
-    max_ts = max(
-        (ts for line in tqdm(f, total=total_lines, desc="Finding max_ts")
-         if (ts := get_ts(line)) is not None),
-        default=0
-    )
-
-days = max_ts - 24 * 3600 * 90
-
-raw_lines = []
-with open(sessions, "r", encoding="utf-8") as f:
-    for line in tqdm(f, total=total_lines, desc=f"Filtering last {days // (24 * 3600)} days"):
-        ts = get_ts(line)
-        if ts is not None and ts >= days:
-            raw_lines.append((ts, line))
-
-print("Sorting sessions...")
-raw_lines.sort(key=lambda x: x[0])
-
-with open(tmp_file, "w", encoding="utf-8") as f:
-    for _, line in tqdm(raw_lines, desc="Writing filtered sessions"):
-        f.write(line)
-
-os.replace(tmp_file, sessions)
-
-with open(sessions, "r", encoding="utf-8") as f:
-    total_lines = sum(1 for _ in f)
-
-with open(sessions, "r", encoding="utf-8") as fin:
-    lines = []
-
-    for line in tqdm(fin, total=total_lines, desc=f"Processing raw {sessions}"):
-        line = line[len("event.session\t"):]
-
+    def get_timestamp(line):
         try:
-            parts = line.split("\t")
-            session_id = int(parts[0])
-            session_timestamp = int(parts[1])
-            session_stats = json.loads(parts[2][:parts[2].find("} {") + 1])
-            session_objects = json.loads(line[line.find("} {") + 2:].strip())
-        except (json.JSONDecodeError, ValueError, IndexError):
-            continue
+            return int(line[len("event.session\t"):].split("\t")[1])
+        except (IndexError, ValueError):
+            return None
 
-        session_playtime = session_stats["playtime"]
-        session_user_id = session_objects["subjects"][0]["id"]
-        session_tracks = session_objects["objects"]
-        session_tracks = [
-            {
-                "id": st["id"],
-                "ps": st["playstart"],
-                "pt": st["playtime"],
-                "pr": st.get("playratio")
-            }
-            for st in session_objects["objects"]
-            if st.get("action") == "play"
-        ]
+    raw_lines = []
+    with open(input_path, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Reading {input_path}"):
+            timestamp = get_timestamp(line)
+            if timestamp is not None:
+                raw_lines.append((timestamp, line))
 
-        if len(session_tracks) >= min_tracks:
-            new_line = f"{session_id}\t{session_timestamp}\t{session_playtime}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n"
-            lines.append((session_timestamp, new_line))
+    print(f"Sorting {input_path}")
+    raw_lines.sort(key=lambda x: x[0])
 
-print("Sorting...")
-lines.sort(key=lambda x: x[0])
-with open(f"{output_dir}{sessions}", "w", encoding="utf-8") as fout:
-    for _, line in tqdm(lines, desc="Writing"):
-        fout.write(line)
+    with open(output_path, "w", encoding="utf-8") as fout:
+        for _, line in tqdm(raw_lines, desc=f"Writing {output_path}"):
+            line = line[len("event.session\t"):]
 
-print("\n")
+            try:
+                parts = line.split("\t")
+                session_id = int(parts[0])
+                session_timestamp = int(parts[1])
+                session_objects = json.loads(line[line.find("} {") + 2:].strip())
+            except (json.JSONDecodeError, ValueError, IndexError):
+                continue
 
-def count_tracks_in_sessions():
+            session_user_id = session_objects["subjects"][0]["id"]
+            session_tracks = [
+                {
+                    "id": st["id"],
+                    "ps": st["playstart"],
+                    "pt": st["playtime"],
+                    "pr": st.get("playratio")
+                }
+                for st in session_objects["objects"]
+                if st.get("action") == "play"
+            ]
+
+            fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
+
+def filter_by_time_window(days_from_max: int, days_to_max: int = 0):
+    print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
+
+    input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
+    output_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+
+    max_timestamp = 0
+    with open(input_path, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(input_path), desc="Finding max timestamp"):
+            parts = line.strip().split("\t")
+            ts = int(parts[1])
+            if ts > max_timestamp:
+                max_timestamp = ts
+
+    lower_bound = max_timestamp - days_from_max * 86400
+    upper_bound = max_timestamp - days_to_max * 86400
+
+    print(f"Max timestamp: {max_timestamp}")
+    print(f"Window: {lower_bound} to {upper_bound}")
+
+    kept = 0
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        for line in tqdm(fin, total=get_line_count(input_path), desc="Filtering sessions"):
+            parts = line.strip().split("\t")
+            ts = int(parts[1])
+            if lower_bound <= ts <= upper_bound:
+                fout.write(line)
+                kept += 1
+
+    print(f"Kept {kept:,} sessions")
+
+def filter_tracks_by_playcount():
+    print("\nFiltering tracks by playcount...")
+
+    input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
     track_counts = Counter()
 
-    with open(f"{output_dir}{sessions}", "r", encoding="utf-8") as fin:
-        for line in tqdm(fin, desc="Collecting track IDs"):
-            parts = line.split("\t")
-            tracks_data = json.loads(parts[4])
-            for t in tracks_data:
+    with open(input_path, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Counting tracks in {input_path}"):
+            parts = line.strip().split("\t")
+            session_tracks = json.loads(parts[3])
+            for t in session_tracks:
                 track_counts[t["id"]] += 1
 
-    with open(f"{output_dir}track_ids.tsv", "w", encoding="utf-8") as f:
-        for tid, count in sorted(track_counts.items()):
-            if count >= min_playcount:
-                f.write(f"{tid}\n")
+    allowed_tracks = {tid for tid, count in track_counts.items() if count >= MIN_TRACK_PLAYCOUNT}
 
-    return sum(track_counts.values())
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Filtering tracks in {input_path}"):
+            parts = line.strip().split("\t")
+            session_tracks = json.loads(parts[3])
+            session_tracks = [t for t in session_tracks if t["id"] in allowed_tracks]
 
-def filter_sessions_by_tracks():
-    allowed_tracks = set()
+            if len(session_tracks) >= MIN_SESSION_LENGTH:
+                fout.write(f"{parts[0]}\t{parts[1]}\t{parts[2]}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
-    with open(f"{output_dir}track_ids.tsv", "r", encoding="utf-8") as f:
-        for line in f:
-            allowed_tracks.add(int(line.strip()))
+def fill_playratio():
+    print("\nFilling missing playratios and clipping values...")
 
-    lines = []
+    input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
-    with open(f"{output_dir}{sessions}", "r", encoding="utf-8") as fin:
-        for line in tqdm(fin, desc="Filtering rare tracks"):
-            parts = line.split("\t")
-            session_id = parts[0]
-            session_timestamp = int(parts[1])
-            session_playtime = parts[2]
-            session_user_id = parts[3]
-            tracks_data = json.loads(parts[4])
+    null_count = 0
+    clipped_count = 0
 
-            tracks_data = [t for t in tracks_data if t["id"] in allowed_tracks]
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Processing playratio in {input_path}"):
+            parts = line.strip().split("\t")
+            tracks_data = json.loads(parts[3])
+            
+            for t in tracks_data:
+                if t["pr"] is None:
+                    t["pr"] = 1.0
+                    null_count += 1
+                if t["pr"] > 2.0:
+                    clipped_count += 1
+                t["pr"] = min(t["pr"], 2.0)
+            
+            parts[3] = json.dumps(tracks_data, separators=(',', ':'))
+            fout.write("\t".join(parts) + "\n")
 
-            if len(tracks_data) >= min_tracks:
-                new_line = f"{session_id}\t{parts[1]}\t{session_playtime}\t{session_user_id}\t{json.dumps(tracks_data, separators=(',', ':'))}\n"
-                lines.append((session_timestamp, new_line))
+    print(f"Replaced nulls with 1.0: {null_count:,}")
+    print(f"Clipped values to 2.0: {clipped_count:,}")
 
-    with open(f"{output_dir}{sessions}", "w", encoding="utf-8") as fout:
-        for _, line in tqdm(lines, desc="Writing"):
-            fout.write(line)
-
-    return len(lines)   
-
-# iteration = 1
-# while True:
-#     print(f"\nIteration {iteration}")
-#     prev = count_tracks_in_sessions()
-#     curr = filter_sessions_by_tracks()
-#     print(f"Sessions: {curr:,}  Interactions before filtering: {prev:,}")
-#     curr = count_tracks_in_sessions()
-#     if prev == curr:
-#         break
-#     iteration += 1
-
-count_tracks_in_sessions()
-filter_sessions_by_tracks()
-
-os.remove(f"{output_dir}track_ids.tsv")
-
-input_path = f"{output_dir}{sessions}"
-output_lines = []
-null_count = 0
-clipped_count = 0
-
-with open(input_path, "r", encoding="utf-8") as fin:
-    for line in tqdm(fin, desc="Processing playratio"):
-        parts = line.strip().split("\t")
-        tracks_data = json.loads(parts[4])
-        
-        for t in tracks_data:
-            if t["pr"] is None:
-                t["pr"] = 1.0
-                null_count += 1
-            if t["pr"] > 2.0:
-                clipped_count += 1
-            t["pr"] = min(t["pr"], 2.0)
-        
-        parts[4] = json.dumps(tracks_data, separators=(',', ':'))
-        output_lines.append("\t".join(parts) + "\n")
-
-with open(input_path, "w", encoding="utf-8") as fout:
-    for line in tqdm(output_lines, desc="Writing"):
-        fout.write(line)
-
-print(f"Replaced nulls with 1.0: {null_count:,}")
-print(f"Clipped values to 2.0: {clipped_count:,}")
-
-input_path = "processed/relations/sessions.idomaar"
-output_path = "../dataset/30music/30music.inter"
-
-with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-    fout.write("session_id:token\tuser_id:token\titem_id:token\ttimestamp:float\trating:float\n")
+def make_inter_file():
+    print("\nCreating .inter file...")
     
-    for line in tqdm(fin, desc="Building .inter"):
-        parts = line.strip().split("\t")
-        session_id = parts[0]
-        timestamp = parts[1]
-        user_id = parts[3]
-        tracks = json.loads(parts[4])
+    input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
+    output_path = os.path.join("dataset", "30music", "30music.inter")
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        fout.write("session_id:token\tuser_id:token\titem_id:token\ttimestamp:float\trating:float\n")
         
-        for track in tracks:
-            fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{timestamp}\t{track['pr']}\n")
+        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Building .inter from {input_path}"):
+            parts = line.strip().split("\t")
+            session_id = parts[0]
+            timestamp = parts[1]
+            user_id = parts[2]
+            tracks = json.loads(parts[3])
+            
+            for track in tracks:
+                fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{int(timestamp) + int(track['ps'])}\t{track['pr']}\n")
+
+if __name__ == "__main__":
+    os.makedirs(DATA_PATH_TEMP, exist_ok=True)
+    os.makedirs(DATA_PATH_PROCESSED, exist_ok=True)
+    
+    initialize()
+    
+    shutil.copy(
+        get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+        get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    )
+
+    filter_by_time_window(days_from_max=DAYS_FROM_MAX, days_to_max=DAYS_TO_MAX)
+    
+    filter_tracks_by_playcount()
+    
+    shutil.copy(
+        get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+        get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    )
+    
+    fill_playratio()
+    
+    make_inter_file()
+    
+    remove_temp_file()
