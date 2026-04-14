@@ -9,10 +9,9 @@ DATA_PATH_TEMP = "dataset_temp/"
 DATA_PATH_PROCESSED = "dataset_processed/"
 DATA_FILE = "sessions"
 
-MIN_TRACK_PLAYCOUNT = 2
+MIN_TRACK_PLAYCOUNT = 5
 MIN_SESSION_LENGTH = 2
-
-DAYS_FROM_MAX = 5
+DAYS_FROM_MAX = 90
 DAYS_TO_MAX = 0
 
 def get_data_file_path(data_path, data_file, file_extension=".tsv"):
@@ -70,8 +69,11 @@ def initialize():
                     "pr": st.get("playratio")
                 }
                 for st in session_objects["objects"]
-                if st.get("action") == "play"
+                # if st.get("action") == "play"
             ]
+
+            # if len(session_tracks) < MIN_SESSION_LENGTH:
+            #     continue
 
             fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
