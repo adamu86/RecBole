@@ -20,4 +20,8 @@ dataset/*
 dataset_raw/*
 dataset_temp/*
 dataset_processed/*
+analysis/*
 
+process_batch.py
+dataset_cache
+plots/*

@@ -8,10 +8,10 @@ reproducibility: True           # (bool) Whether or not to make results reproduc
 data_path: 'dataset/'           # (str) The path of input dataset.
 checkpoint_dir: 'saved'         # (str) The path to save checkpoint file.
 show_progress: True             # (bool) Whether or not to show the progress bar of every epoch. 
-save_dataset: True             # (bool) Whether or not to save filtered dataset.
-dataset_save_path: 'dataset/saved/'            # (str) The path of saved dataset.
-save_dataloaders: True         # (bool) Whether or not save split dataloaders.
-dataloaders_save_path: 'dataset/saved/dataloaders/'        # (str) The path of saved dataloaders.
+save_dataset: False             # (bool) Whether or not to save filtered dataset.
+dataset_save_path: ~            # (str) The path of saved dataset.
+save_dataloaders: False         # (bool) Whether or not save split dataloaders.
+dataloaders_save_path: ~        # (str) The path of saved dataloaders.
 log_wandb: False                # (bool) Whether or not to use Weights & Biases(W&B).
 wandb_project: 'recbole'        # (str) The project to conduct experiments in W&B.
 shuffle: True                   # (bool) Whether or not to shuffle the training data before each epoch.
@@ -28,7 +28,7 @@ seq_len: ~                      # (dict) Field name of sequence feature: maximum
 LABEL_FIELD: label              # (str) Expected field name of the generated labels for point-wise dataLoaders. 
 threshold: ~                    # (dict) 0/1 labels will be generated according to the pairs.
 NEG_PREFIX: neg_                # (str) Negative sampling prefix for pair-wise dataLoaders.
-numerical_features: []          # (list) Float feature fields to be embedded
+numerical_features: []    # (list) Float feature fields to be embedded
 
 # Selectively Loading
 load_col:                       # (dict) The suffix of atomic files: (list) field names to be loaded.
@@ -87,10 +87,10 @@ transform: ~                    # (str) The transform operation for batch data p
 
 # Evaluation Settings
 eval_args:                      # (dict) 4 keys: group_by, order, split, and mode
-  split: {'RS':[0.8,0.1,0.1]}   # (dict) The splitting strategy ranging in ['RS','LS'].
+  split: {'LS':'valid_and_test'}   # (dict) The splitting strategy ranging in ['RS','LS'].
   group_by: user                # (str) The grouping strategy ranging in ['user', 'none'].
   order: TO                     # (str) The ordering strategy ranging in ['RO', 'TO'].
-  mode: full                    # (str) The evaluation mode ranging in ['full','unixxx','popxxx','labeled'].
+  mode: uni100                    # (str) The evaluation mode ranging in ['full','unixxx','popxxx','labeled'].
 repeatable: False               # (bool) Whether to evaluate results with a repeatable recommendation scene. 
 metrics: ["Recall","Precision","MRR","MAP","Hit","NDCG"]  # (list or str) Evaluation metrics.
 topk: [5,10,15,20]                      # (list or int or None) The value of k for topk evaluation metrics.

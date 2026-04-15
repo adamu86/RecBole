@@ -2,25 +2,30 @@ import json
 import os
 import shutil
 import argparse
-import numpy as np
+import subprocess
 from tqdm import tqdm
 from collections import Counter
-import matplotlib.pyplot as plt
 
+DATA_FILE = "sessions"
 DATA_PATH_RAW = "dataset_raw/"
 DATA_PATH_TEMP = "dataset_temp/"
 DATA_PATH_PROCESSED = "dataset_processed/"
-DATA_FILE = "sessions"
 
-MIN_TRACK_PLAYCOUNT = 10
+MIN_TRACK_PLAYCOUNT = 5
 MIN_SESSION_LENGTH = 2
+MIN_SESSION_PLAYTIME = 10
+MAX_SESSION_PLAYTIME = 1_000_000
+MAX_SESSION_RECENT_TRACKS = 50
 DAYS_FROM_MAX = 180
-DAYS_TO_MAX = 0
+DAYS_TO_MAX = 90
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--min_track_playcount", type=int)
 parser.add_argument("--min_session_length", type=int)
+parser.add_argument("--min_session_playtime", type=int)
+parser.add_argument("--max_session_playtime", type=int)
+parser.add_argument("--max_session_recent_tracks", type=int)
 parser.add_argument("--days_from_max", type=int)
 parser.add_argument("--days_to_max", type=int)
 
@@ -38,13 +43,26 @@ if args.days_from_max is not None:
 if args.days_to_max is not None:
     DAYS_TO_MAX = args.days_to_max
 
+if args.min_session_playtime is not None:
+    MIN_SESSION_PLAYTIME = args.min_session_playtime
+
+if args.max_session_playtime is not None:
+    MAX_SESSION_PLAYTIME = args.max_session_playtime
+
+if args.max_session_recent_tracks is not None:
+    MAX_SESSION_RECENT_TRACKS = args.max_session_recent_tracks
+
+def copy_processed_to_temp():
+    shutil.copy(
+        get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+        get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    )
 
 def get_data_file_path(data_path, data_file, file_extension=".tsv"):
     return os.path.join(data_path, f"{data_file}{file_extension}")
 
-def get_line_count(file_path): 
-    with open(file_path, "r", encoding="utf-8") as f:
-        return sum(1 for _ in f)
+def get_line_count(file_path):
+    return int(subprocess.check_output(['wc', '-l', file_path]).split()[0])
 
 def remove_temp_file():
     temp_file_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
@@ -81,10 +99,12 @@ def initialize():
                 parts = line.split("\t")
                 session_id = int(parts[0])
                 session_timestamp = int(parts[1])
+                session_stats = json.loads(parts[2][:parts[2].find("} {") + 1])
                 session_objects = json.loads(line[line.find("} {") + 2:].strip())
             except (json.JSONDecodeError, ValueError, IndexError):
                 continue
 
+            session_playtime = session_stats["playtime"]
             session_user_id = session_objects["subjects"][0]["id"]
             session_tracks = [
                 {
@@ -92,14 +112,13 @@ def initialize():
                     "ps": st["playstart"],
                     "pt": st["playtime"],
                     "pr": st.get("playratio"),
-                    # "pr": 0 if st.get("action") == "skip" and st.get("playratio") is None else st.get("playratio")
+                    "ac": st.get("action")
                 }
-                for st in session_objects["objects"]
-                # if st.get("action") == "play"
+                for st in session_objects["objects"][-(MAX_SESSION_RECENT_TRACKS + 1):-1]
             ]
 
-            # if len(session_tracks) < MIN_SESSION_LENGTH:
-            #     continue
+            if not (MIN_SESSION_PLAYTIME <= session_playtime <= MAX_SESSION_PLAYTIME):
+                continue
 
             fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
@@ -109,8 +128,8 @@ def filter_by_time_window(days_from_max: int, days_to_max: int = 0):
 
     print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
 
-    input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    output_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
     max_timestamp = 0
     with open(input_path, "r", encoding="utf-8") as fin:
@@ -187,181 +206,11 @@ def fill_playratio():
     # print(f"Replaced nulls with 1.0: {null_count:,}")
     # print(f"Clipped values to 2.0: {clipped_count:,}")
 
-def analyze_dataset():
-    import numpy as np
-    
-    print("\nAnalyzing dataset statistics...")
-    
-    input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    
-    if not os.path.exists(input_path):
-        print(f"Processed file {input_path} not found. Skipping analysis.")
-        return
-
-    track_counts = Counter()
-    session_lengths = []
-    user_session_counts = Counter()
-    user_interaction_counts = Counter()
-    playratios = []
-    total_sessions = 0
-    total_interactions = 0
-    
-    with open(input_path, "r", encoding="utf-8") as fin:
-        for line in tqdm(fin, total=get_line_count(input_path), desc="Analyzing dataset"):
-            parts = line.strip().split("\t")
-            user_id = parts[2]
-            tracks = json.loads(parts[3])
-            
-            user_session_counts[user_id] += 1
-            user_interaction_counts[user_id] += len(tracks)
-            session_lengths.append(len(tracks))
-            total_sessions += 1
-            total_interactions += len(tracks)
-            
-            for t in tracks:
-                track_counts[t["id"]] += 1
-                pr = t.get("pr")
-                if pr is not None:
-                    playratios.append(float(pr))
-
-    unique_tracks = len(track_counts)
-    unique_users = len(user_session_counts)
-    
-    session_lengths_arr = np.array(session_lengths)
-    track_counts_arr = np.array(sorted(track_counts.values(), reverse=True))
-    user_sessions_arr = np.array(sorted(user_session_counts.values(), reverse=True))
-    user_inters_arr = np.array(sorted(user_interaction_counts.values(), reverse=True))
-    playratios_arr = np.array(playratios) if playratios else np.array([])
-    
-    sparsity = 1.0 - (total_interactions / (unique_users * unique_tracks)) if unique_users * unique_tracks > 0 else 0
-    
-    os.makedirs("analysis", exist_ok=True)
-    report_file = f"analysis/stats_t{MIN_TRACK_PLAYCOUNT}_sl{MIN_SESSION_LENGTH}_d{DAYS_FROM_MAX}.txt"
-    with open(report_file, "w", encoding="utf-8") as f:
-        f.write(f"=== Dataset Statistics ===\n")
-        f.write(f"Parameters: min_track_playcount={MIN_TRACK_PLAYCOUNT}, min_session_length={MIN_SESSION_LENGTH}, days_from_max={DAYS_FROM_MAX}\n\n")
-        
-        f.write(f"Total sessions: {total_sessions}\n")
-        f.write(f"Total unique users: {unique_users}\n")
-        f.write(f"Total unique tracks: {unique_tracks}\n")
-        f.write(f"Total interactions: {total_interactions}\n")
-        f.write(f"Sparsity: {sparsity*100:.4f}%\n\n")
-        
-        if total_sessions > 0:
-            f.write(f"--- Session lengths ---\n")
-            f.write(f"  Mean: {session_lengths_arr.mean():.2f}\n")
-            f.write(f"  Median: {np.median(session_lengths_arr):.1f}\n")
-            f.write(f"  Std: {session_lengths_arr.std():.2f}\n")
-            f.write(f"  Min: {session_lengths_arr.min()}\n")
-            f.write(f"  Max: {session_lengths_arr.max()}\n")
-            f.write(f"  P25: {np.percentile(session_lengths_arr, 25):.1f}\n")
-            f.write(f"  P75: {np.percentile(session_lengths_arr, 75):.1f}\n")
-            f.write(f"  P95: {np.percentile(session_lengths_arr, 95):.1f}\n\n")
-        
-        if unique_tracks > 0:
-            f.write(f"--- Track playcounts ---\n")
-            f.write(f"  Mean: {track_counts_arr.mean():.2f}\n")
-            f.write(f"  Median: {np.median(track_counts_arr):.1f}\n")
-            f.write(f"  Std: {track_counts_arr.std():.2f}\n")
-            f.write(f"  Min: {track_counts_arr.min()}\n")
-            f.write(f"  Max: {track_counts_arr.max()}\n")
-            f.write(f"  P25: {np.percentile(track_counts_arr, 25):.1f}\n")
-            f.write(f"  P75: {np.percentile(track_counts_arr, 75):.1f}\n")
-            f.write(f"  P95: {np.percentile(track_counts_arr, 95):.1f}\n\n")
-        
-        if unique_users > 0:
-            f.write(f"--- User activity (sessions per user) ---\n")
-            f.write(f"  Mean: {user_sessions_arr.mean():.2f}\n")
-            f.write(f"  Median: {np.median(user_sessions_arr):.1f}\n")
-            f.write(f"  Min: {user_sessions_arr.min()}\n")
-            f.write(f"  Max: {user_sessions_arr.max()}\n")
-            f.write(f"  P25: {np.percentile(user_sessions_arr, 25):.1f}\n")
-            f.write(f"  P75: {np.percentile(user_sessions_arr, 75):.1f}\n")
-            f.write(f"  P95: {np.percentile(user_sessions_arr, 95):.1f}\n\n")
-
-            f.write(f"--- User activity (interactions per user) ---\n")
-            f.write(f"  Mean: {user_inters_arr.mean():.2f}\n")
-            f.write(f"  Median: {np.median(user_inters_arr):.1f}\n")
-            f.write(f"  Min: {user_inters_arr.min()}\n")
-            f.write(f"  Max: {user_inters_arr.max()}\n")
-            f.write(f"  P25: {np.percentile(user_inters_arr, 25):.1f}\n")
-            f.write(f"  P75: {np.percentile(user_inters_arr, 75):.1f}\n")
-            f.write(f"  P95: {np.percentile(user_inters_arr, 95):.1f}\n\n")
-        
-        # if len(playratios_arr) > 0:
-        #     f.write(f"--- Playratio ---\n")
-        #     f.write(f"  Count (non-null): {len(playratios_arr)}\n")
-        #     f.write(f"  Mean: {playratios_arr.mean():.4f}\n")
-        #     f.write(f"  Median: {np.median(playratios_arr):.4f}\n")
-        #     f.write(f"  Std: {playratios_arr.std():.4f}\n")
-        #     f.write(f"  Ratio with pr=0 (skips): {(playratios_arr == 0).sum()} ({(playratios_arr == 0).sum()/len(playratios_arr)*100:.2f}%)\n")
-        #     f.write(f"  Ratio with pr>=1 (full listen): {(playratios_arr >= 1.0).sum()} ({(playratios_arr >= 1.0).sum()/len(playratios_arr)*100:.2f}%)\n\n")
-
-    print(f"Analysis stats saved to {report_file}")
-            
-    if unique_tracks == 0 or total_sessions == 0:
-        return
-    
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    ax = axes[0, 0]
-    ax.plot(track_counts_arr)
-    ax.set_yscale('log')
-    ax.set_xlabel('Track Rank')
-    ax.set_ylabel('Playcount (log scale)')
-    ax.set_title('Track Popularity Distribution')
-    ax.grid(True, alpha=0.3)
-    
-    ax = axes[0, 1]
-    sl_counts = Counter(session_lengths)
-    lengths, freqs = zip(*sorted(sl_counts.items()))
-    ax.bar(lengths, freqs, color='steelblue', edgecolor='none')
-    ax.set_xlim(left=0, right=min(50, max(lengths) + 1))
-    ax.set_xlabel('Session Length')
-    ax.set_ylabel('Frequency')
-    ax.set_title('Session Length Distribution')
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    ax = axes[1, 0]
-    ax.plot(user_sessions_arr, color='darkorange')
-    ax.set_yscale('log')
-    ax.set_xlabel('User Rank')
-    ax.set_ylabel('Sessions per User (log scale)')
-    ax.set_title('User Activity Distribution')
-    ax.grid(True, alpha=0.3)
-
-    ax = axes[1, 1]
-    if len(playratios_arr) > 0:
-        ax.hist(playratios_arr[playratios_arr <= 2.0], bins=50, color='seagreen', edgecolor='none', alpha=0.8)
-        ax.axvline(x=1.0, color='red', linestyle='--', linewidth=1, label='Full listen (pr=1.0)')
-        ax.set_xlabel('Playratio')
-        ax.set_ylabel('Frequency')
-        ax.set_title('Playratio Distribution (clipped to 2.0)')
-        ax.legend()
-    else:
-        ax.text(0.5, 0.5, 'No playratio data', ha='center', va='center', transform=ax.transAxes)
-        ax.set_title('Playratio Distribution')
-    ax.grid(True, alpha=0.3, axis='y')
-    
-    plt.suptitle(
-        f"Dataset Stats (MinTrack:{MIN_TRACK_PLAYCOUNT}, MinSess:{MIN_SESSION_LENGTH}, Days:{DAYS_FROM_MAX})\n"
-        f"Sessions: {total_sessions:,} | Users: {unique_users:,} | Tracks: {unique_tracks:,} | "
-        f"Interactions: {total_interactions:,} | Sparsity: {sparsity*100:.2f}%",
-        fontsize=11
-    )
-    
-    plt.tight_layout()
-    plot_file = f"analysis/stats_t{MIN_TRACK_PLAYCOUNT}_sl{MIN_SESSION_LENGTH}_d{DAYS_FROM_MAX}.png"
-    plt.savefig(plot_file, dpi=150)
-    plt.close()
-   
-    print(f"Analysis plot saved to {plot_file}")
-
-def make_inter_file():
+def make_inter_file(alias):
     print("\nCreating .inter file...")
     
     input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    output_path = os.path.join("dataset", "30music", "30music.inter")
+    output_path = os.path.join("dataset", alias, f"{alias}.inter")
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -384,31 +233,21 @@ if __name__ == "__main__":
     
     # wstępne czyszczenie
     initialize()
-    
-    shutil.copy(
-        get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
-        get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
-    )
+    copy_processed_to_temp()
 
     # filtrowanie wg okna czasowego
     filter_by_time_window(days_from_max=DAYS_FROM_MAX, days_to_max=DAYS_TO_MAX)
-    
+    copy_processed_to_temp()
+
     # filtrowanie wg liczby odsłuchań
     filter_tracks_by_playcount()
+    copy_processed_to_temp()
     
-    # shutil.copy(
-    #     get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
-    #     get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
-    # )
+    # uzupełnianie playratio
+    fill_playratio()
     
-    # # uzupełnianie playratio
-    # fill_playratio()
+    # tworzenie pliku .inter
+    make_inter_file("30music")
     
-    # # tworzenie pliku .inter
-    # make_inter_file()
-    
-    # # usuwanie plików tymczasowych
-    # remove_temp_file()
-    
-    # analiza zbioru danych po przetworzeniu
-    analyze_dataset()
+    # usuwanie plików tymczasowych
+    remove_temp_file()
