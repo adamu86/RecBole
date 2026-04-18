@@ -20,5 +20,6 @@ dependencies:
   - psutil>=5.9.0
   - pip
   - matplotlib
+  - requests
   - pip:
       - ray[tune]>=1.6.0
