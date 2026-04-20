@@ -13,16 +13,18 @@ DATA_PATH_PROCESSED = "dataset_processed/"
 
 MIN_TRACK_PLAYCOUNT = 5
 MIN_SESSION_LENGTH = 2
+MAX_SESSION_LENGTH = 90
 MIN_SESSION_PLAYTIME = 30
 MAX_SESSION_PLAYTIME = 1_000_000
-MAX_SESSION_RECENT_TRACKS = 90
-DAYS_FROM_MAX = 270
+MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
+DAYS_FROM_MAX = 120
 DAYS_TO_MAX = 90
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--min_track_playcount", type=int)
 parser.add_argument("--min_session_length", type=int)
+parser.add_argument("--max_session_length", type=int)
 parser.add_argument("--min_session_playtime", type=int)
 parser.add_argument("--max_session_playtime", type=int)
 parser.add_argument("--max_session_recent_tracks", type=int)
@@ -35,6 +37,8 @@ if args.min_track_playcount is not None:
     MIN_TRACK_PLAYCOUNT = args.min_track_playcount
 if args.min_session_length is not None:
     MIN_SESSION_LENGTH = args.min_session_length
+if args.max_session_length is not None:
+    MAX_SESSION_LENGTH = args.max_session_length
 if args.days_from_max is not None:
     DAYS_FROM_MAX = args.days_from_max
 if args.days_to_max is not None:
@@ -117,7 +121,7 @@ def initialize():
             fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
 def filter_by_time_window(days_from_max = DAYS_FROM_MAX, days_to_max = DAYS_TO_MAX):
-    if days_from_max == 365:
+    if days_from_max == 365 and days_to_max == 0:
         return
 
     print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
@@ -169,7 +173,7 @@ def filter_tracks_by_playcount():
             session_tracks = json.loads(parts[3])
             session_tracks = [t for t in session_tracks if t["id"] in allowed_tracks]
 
-            if len(session_tracks) >= MIN_SESSION_LENGTH:
+            if MIN_SESSION_LENGTH <= len(session_tracks) <= MAX_SESSION_LENGTH:
                 fout.write(f"{parts[0]}\t{parts[1]}\t{parts[2]}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
 def fill_playratio():
@@ -178,22 +182,19 @@ def fill_playratio():
     input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
-    null_count = 0
-    clipped_count = 0
-
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Processing playratio in {input_path}"):
             parts = line.strip().split("\t")
             tracks_data = json.loads(parts[3])
             
             for t in tracks_data:
-                if t["pr"] is None:
+                if t["pr"] is None and t["ac"] == "play":
                     t["pr"] = 1.0
-                    null_count += 1
-                if t["pr"] > 2.0:
-                    clipped_count += 1
-                t["pr"] = min(t["pr"], 2.0)
-            
+                elif t["pr"] is None and t["ac"] == "skip":
+                    t["pr"] = 0.0
+                elif t["pr"] is not None and t["pr"] > 2.0 and t["ac"] == "play":
+                    t["pr"] = min(t["pr"], 2.0)
+
             parts[3] = json.dumps(tracks_data, separators=(',', ':'))
             fout.write("\t".join(parts) + "\n")
 
@@ -218,16 +219,10 @@ def make_inter_file(alias):
             for track in tracks:
                 fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{int(timestamp) + int(track['ps'])}\t{track['pr']}\n")
 
-def save_config(name):
-    shutil.copy(
-        'recbole/properties/dataset/30music.yaml', 
-        f'recbole/properties/dataset/{name}.yaml'
-    )
-
 def get_dataset_name():
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
-        f"length[{MIN_SESSION_LENGTH}]",
+        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
         f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
         f"recent[{MAX_SESSION_RECENT_TRACKS}]",
@@ -256,9 +251,6 @@ if __name__ == "__main__":
     
     # tworzenie pliku .inter
     make_inter_file(get_dataset_name())
-
-    # tworzenie pliku .yaml
-    save_config(get_dataset_name())
 
     # usuwanie plików tymczasowych
     remove_temp_file()

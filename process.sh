@@ -1,9 +1,7 @@
-# !/bin/bash
+#!/bin/bash
 
 params=(
-    "120 119"
-    "118 116"
-    "115 112"
+    "270 90"
 )
 
 for p in "${params[@]}"; do

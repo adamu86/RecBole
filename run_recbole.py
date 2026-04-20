@@ -7,9 +7,12 @@ from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from pathlib import Path
 from functools import partial
+import traceback
 import torch
+import shutil
 import json
 import gc
+import os
 
 _original_torch_load = torch.load
 
@@ -28,19 +31,26 @@ model_dict = {
         },
         'model': GRU4Rec
     },
-    'STAMP': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': STAMP
-    }
+    # 'STAMP': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': STAMP
+    # }
 }
 
 results = {}
 dataset_dir = Path("dataset")
 dataset_dict = {p.name: p for p in dataset_dir.iterdir() if p.is_dir()}
 logger = getLogger()
+
+for dataset_name in dataset_dict.keys():
+    if not os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
+        shutil.copy(
+            'recbole/properties/dataset/30music.yaml', 
+            f'recbole/properties/dataset/{dataset_name}.yaml'
+        )
 
 for model_name in model_dict.keys():
     for dataset_name in dataset_dict.keys():
@@ -62,6 +72,7 @@ for model_name in model_dict.keys():
                 c_handler.setLevel(logging.INFO)
                 logger.addHandler(c_handler)
             
+            logger.info(config)
             dataset = create_dataset(config)
             logger.info(dataset)
 
@@ -95,6 +106,10 @@ for model_name in model_dict.keys():
             torch.cuda.empty_cache()
         except Exception as e:
             logger.error(f"Failed {model_name} on {dataset_name}: {e}")
+            traceback.print_exc()
             results[f"{model_name}_{dataset_name}"] = {'error': str(e)}
             torch.cuda.empty_cache()
             continue
+
+for dataset_name in dataset_dict.keys():
+    os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")

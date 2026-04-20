@@ -94,7 +94,6 @@
     "recbole/properties/model/lightgbm.yaml": true,
     "recbole/properties/model/xDeepFM.yaml": true,
     "recbole/properties/model/xgboost.yaml": true,
-    "recbole/properties/quick_start_config/context*": true,
-    "recbole/properties/quick_start_config/knowledge*": true
+    "recbole/properties/quick_start_config": true,
   }
 }
