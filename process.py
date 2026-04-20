@@ -222,13 +222,13 @@ def make_inter_file(alias):
 def get_dataset_name():
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
-        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
         f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
+        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
         f"recent[{MAX_SESSION_RECENT_TRACKS}]",
     ]
 
-    return "30music__" + "__".join(name_parts)
+    return "30music__" + "_".join(name_parts)
 
 if __name__ == "__main__":
     os.makedirs(DATA_PATH_TEMP, exist_ok=True)
