@@ -224,7 +224,10 @@ class Collector(object):
         And reset some of outdated resource.
         """
         for key in self.data_struct._data_dict:
-            self.data_struct._data_dict[key] = self.data_struct._data_dict[key].cpu()
+            try:
+                self.data_struct._data_dict[key] = self.data_struct._data_dict[key].cpu()
+            except AttributeError:
+                pass
         returned_struct = copy.deepcopy(self.data_struct)
         for key in ["rec.topk", "rec.meanrank", "rec.score", "rec.items", "data.label"]:
             if key in self.data_struct:

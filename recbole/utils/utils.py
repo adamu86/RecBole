@@ -180,7 +180,7 @@ def dict2str(result_dict):
         str: result str
     """
 
-    return "    ".join(
+    return "\n".join(
         [str(metric) + " : " + str(value) for metric, value in result_dict.items()]
     )
 
