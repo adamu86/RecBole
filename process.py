@@ -17,8 +17,8 @@ MAX_SESSION_LENGTH = 90
 MIN_SESSION_PLAYTIME = 30
 MAX_SESSION_PLAYTIME = 1_000_000
 MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
-DAYS_FROM_MAX = 120
-DAYS_TO_MAX = 90
+DAYS_FROM_MAX = 365
+DAYS_TO_MAX = 65
 
 parser = argparse.ArgumentParser()
 
@@ -120,13 +120,18 @@ def initialize():
 
             fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
 
+    shutil.copy(
+        get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+        get_data_file_path(DATA_PATH_RAW, DATA_FILE)
+    )
+
 def filter_by_time_window(days_from_max = DAYS_FROM_MAX, days_to_max = DAYS_TO_MAX):
     if days_from_max == 365 and days_to_max == 0:
         return
 
     print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
 
-    input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+    input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
     max_timestamp = 0
@@ -231,12 +236,13 @@ def get_dataset_name():
     return "30music__" + "_".join(name_parts)
 
 if __name__ == "__main__":
+    os.makedirs(DATA_PATH_RAW, exist_ok=True)
     os.makedirs(DATA_PATH_TEMP, exist_ok=True)
     os.makedirs(DATA_PATH_PROCESSED, exist_ok=True)
     
     # wstępne czyszczenie
-    initialize()
-    copy_processed_to_temp()
+    if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
+        initialize()
 
     # filtrowanie wg okna czasowego
     filter_by_time_window()
