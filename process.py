@@ -224,6 +224,37 @@ def make_inter_file(alias):
             for track in tracks:
                 fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{int(timestamp) + int(track['ps'])}\t{track['pr']}\n")
 
+def make_tracks_file(alias):
+    print("\nCreating tracks file...")
+
+    input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
+    tracks_source = os.path.join("dataset_tracks", "tracks.tsv")
+    output_path = os.path.join("dataset", alias, "tracks.tsv")
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    track_ids = set()
+    with open(input_path, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(input_path), desc="Collecting track IDs"):
+            parts = line.strip().split("\t")
+            session_tracks = json.loads(parts[3])
+            for t in session_tracks:
+                track_ids.add(str(t["id"]))
+
+    kept = 0
+    seen = set()
+    with open(tracks_source, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        for line in tqdm(fin, total=get_line_count(tracks_source), desc="Filtering tracks"):
+            stripped = line.strip()
+            tid = stripped.split("\t", 1)[0]
+            if tid in track_ids and stripped not in seen:
+                seen.add(stripped)
+                fout.write(line)
+                kept += 1
+
+    print(f"Saved {kept:,} unique tracks (out of {len(track_ids):,} unique IDs) to {output_path}")
+
+
 def get_dataset_name():
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
@@ -257,6 +288,9 @@ if __name__ == "__main__":
     
     # tworzenie pliku .inter
     make_inter_file(get_dataset_name())
+
+    # tworzenie pliku tracks
+    make_tracks_file(get_dataset_name())
 
     # usuwanie plików tymczasowych
     remove_temp_file()

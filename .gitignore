@@ -24,6 +24,7 @@ analysis/*
 
 process_batch.py
 dataset_cache
+dataset_tracks/tracks*
 plots/*
 30music_*.yaml
 30music.yaml

@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run RecBole environment",
+            "label": "RecBole environment",
             "type": "shell",
             "command": ".\\env_run.bat",
             "windows": {
