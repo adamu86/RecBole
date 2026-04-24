@@ -21,5 +21,7 @@ dependencies:
   - pip
   - matplotlib
   - requests
+  - fastapi
+  - uvicorn
   - pip:
       - ray[tune]>=1.6.0
