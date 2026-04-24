@@ -77,12 +77,12 @@ CMD ["zsh"]
 
 
 # 1. Build the image:
-# docker build -t recbole-env .
+# docker build --no-cache -t recbole-env .
 
 # 2. Run with current directory mounted as /workspace:
 # Linux:
-# docker run --rm --name recbole-env -it --gpus all -v $(pwd):/workspace recbole-env
+# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v $(pwd):/workspace recbole-env
 # PowerShell:
-# docker run --rm --name recbole-env -it --gpus all -v ${PWD}:/workspace recbole-env
+# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v ${PWD}:/workspace recbole-env
 # Windows Command Prompt:
-# docker run --rm --name recbole-env -it --gpus all -v %cd%:/workspace recbole-env
+# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v %cd%:/workspace recbole-env
