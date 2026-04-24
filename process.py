@@ -5,6 +5,7 @@ import argparse
 import subprocess
 from tqdm import tqdm
 from collections import Counter
+from urllib.parse import unquote_plus
 
 DATA_FILE = "sessions"
 DATA_PATH_RAW = "dataset_raw/"
@@ -228,7 +229,7 @@ def make_tracks_file(alias):
     print("\nCreating tracks file...")
 
     input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    tracks_source = os.path.join("dataset_tracks", "tracks.tsv")
+    tracks_source = get_data_file_path(DATA_PATH_RAW, "tracks.tsv")
     output_path = os.path.join("dataset", alias, "tracks.tsv")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -254,6 +255,19 @@ def make_tracks_file(alias):
 
     print(f"Saved {kept:,} unique tracks (out of {len(track_ids):,} unique IDs) to {output_path}")
 
+def make_track_names_file():
+    print("\nCreating track names file...")
+    
+    tracks_source = os.path.join(DATA_PATH_RAW, "tracks.idomaar")
+    output_path = os.path.join(DATA_PATH_RAW, "tracks.tsv")
+    
+    with open(tracks_source, 'r', encoding='utf-8') as f_in, open(output_path, 'w', encoding='utf-8') as f_out:
+        for line in tqdm(f_in, total=get_line_count(tracks_source), desc="Filtering tracks"):
+            parts = line.strip().split('\t')
+            track_id = parts[1]
+            meta = json.loads(parts[3])
+            name = unquote_plus(meta['name'])
+            f_out.write(f"{track_id}\t{name}\n")
 
 def get_dataset_name():
     name_parts = [
@@ -267,30 +281,20 @@ def get_dataset_name():
     return "30music__" + "_".join(name_parts)
 
 if __name__ == "__main__":
-    os.makedirs(DATA_PATH_RAW, exist_ok=True)
     os.makedirs(DATA_PATH_TEMP, exist_ok=True)
     os.makedirs(DATA_PATH_PROCESSED, exist_ok=True)
-    
-    # wstępne czyszczenie
+
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
         initialize()
 
-    # filtrowanie wg okna czasowego
+    if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks.tsv")):
+        make_track_names_file()
+
     filter_by_time_window()
     copy_processed_to_temp()
-
-    # filtrowanie wg liczby odsłuchań
     filter_tracks_by_playcount()
     copy_processed_to_temp()
-    
-    # uzupełnianie playratio
     fill_playratio()
-    
-    # tworzenie pliku .inter
     make_inter_file(get_dataset_name())
-
-    # tworzenie pliku tracks
     make_tracks_file(get_dataset_name())
-
-    # usuwanie plików tymczasowych
     remove_temp_file()

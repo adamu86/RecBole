@@ -15,7 +15,7 @@
     "tests": true,
     "run_hyper.py": true,
     "dataset_cache": true,
-    "process_batch.py": true,
+    "examples": true,
     "**/.idea": true,
     "**/.venv": true,
     "**/*.cfg": true,
@@ -24,11 +24,18 @@
     "**/log*": true,
     "**/__pycache__": true,
     "**/__init__.py": true,
+
+    // "env_*.bat": true,
+    "Dockerfile": true,
+    
+    "dataset_temp": true,
+    "dataset_processed": true,
+    "recbole/dataset_*": true,
     "recbole/model/context*": true,
     "recbole/model/general*": true,
     "recbole/model/knowledge*": true,
     "recbole/model/exlib*": true,
-    "recbole/dataset_*": true,
+
     "recbole/properties/dataset/[a-zA-Z]*": true,
     "recbole/properties/model/ADMMSLIM.yaml": true,
     "recbole/properties/model/AFM.yaml": true,

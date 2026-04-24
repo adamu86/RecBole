@@ -2,11 +2,10 @@ import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import GRU4Rec, STAMP, SRGNN
+from recbole.model.sequential_recommender import GRU4Rec
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from pathlib import Path
-from functools import partial
 import traceback
 import torch
 import shutil
@@ -30,14 +29,7 @@ model_dict = {
             'neg_sampling': None
         },
         'model': GRU4Rec
-    },
-    # 'STAMP': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': STAMP
-    # }
+    }
 }
 
 results = {}
@@ -98,7 +90,7 @@ for model_name in model_dict.keys():
                 'test_result': test_result
             }
 
-            with open('results.json', 'w') as f:
+            with open(f'saved/{model_name}_{dataset_name}/results.json', 'w') as f:
                 json.dump(results, f, indent=2)
 
             del model, trainer, dataset, train_data, valid_data, test_data

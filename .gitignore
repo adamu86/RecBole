@@ -15,17 +15,22 @@ wandb/*
 /ray_log*
 
 .venv
+/app/frontend/node_modules
 log
 dataset/*
 dataset_raw/*
 dataset_temp/*
+dataset_tracks/*
 dataset_processed/*
-analysis/*
-
-process_batch.py
 dataset_cache
-dataset_tracks/tracks*
+
+analyze.py
+analysis/*
 plots/*
+
 30music_*.yaml
 30music.yaml
 results.json
+
+process.sh
+run_model.py
