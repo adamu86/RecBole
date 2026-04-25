@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./Rubik-Regular.ttf') format('truetype');
+}
+
+body {
+  font-family: 'Rubik', sans-serif;
+}
