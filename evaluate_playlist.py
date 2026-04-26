@@ -1,5 +1,5 @@
 import os
-import glob
+import json
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -9,13 +9,13 @@ import argparse
 from collections import Counter
 
 K_LIST = [5, 10, 15, 20]
-METRICS = [
-    ('Recall', lambda rel, tot, k: Recall(rel, tot, k)),
-    ('Precision', lambda rel, tot, k: Precision(rel, k)),
-    ('HitRate', lambda rel, tot, k: HitRate(rel, k)),
-    ('MRR', lambda rel, tot, k: ReciprocalRank(rel, k)),
-    ('MAP', lambda rel, tot, k: AveragePrecision(rel, tot, k)),
-    ('NDCG', lambda rel, tot, k: NormalizedDiscountedCumulativeGain(rel, tot, k)),
+ACCURACY_METRICS = [
+    ('recall', lambda rel, tot, k: Recall(rel, tot, k)),
+    ('precision', lambda rel, tot, k: Precision(rel, k)),
+    ('mrr', lambda rel, tot, k: ReciprocalRank(rel, k)),
+    ('map', lambda rel, tot, k: AveragePrecision(rel, tot, k)),
+    ('hit', lambda rel, tot, k: HitRate(rel, k)),
+    ('ndcg', lambda rel, tot, k: NormalizedDiscountedCumulativeGain(rel, tot, k)),
 ]
 
 def Recall(relevant, total_relevant, k):
@@ -31,12 +31,10 @@ def Precision(relevant, k):
 def HitRate(relevant, k):
     return 1.0 if np.array(relevant[:k]).sum() > 0 else 0.0
 
-def Mean(metric_fn, relevant_list, k, **kwargs):
-    return np.mean([metric_fn(r, k, **kwargs) for r in relevant_list])
-
 def ReciprocalRank(relevant, k):
     numerator = 1
-    denominator = [(i + 1) for i, hit in enumerate(relevant[:k]) if hit][0]
+    hits = [(i + 1) for i, hit in enumerate(relevant[:k]) if hit]
+    denominator = hits[0] if hits else 0
     return numerator / denominator if denominator > 0 else 0.0
     
 def AveragePrecision(relevant, total_relevant, k):
@@ -79,12 +77,14 @@ def GiniIndex(topk_indices_all_sessions, total_items, k):
 
     return numerator / denominator if denominator > 0 else 0.0
 
-def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
-    print(f"Loading model: {model_file}")
-
-    config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
-        model_file=model_file
-    )
+def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, config=None, model=None, dataset=None, train_data=None, test_data=None):   
+    if model_file is not None and config is None:
+        print(f"Loading model: {model_file}")
+        config, model, dataset, train_data, _valid_data, test_data = load_data_and_model(
+            model_file=model_file
+        )
+    elif config is None:
+        raise ValueError("Either model_file or (config, model, dataset, train_data, test_data) must be provided")
     
     device = config['device']
     model = model.to(device).eval()
@@ -152,22 +152,31 @@ def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
                 for name, fn in metrics:
                     results[f'{name}@{k}'].append(fn(relevant, len(session_target), k))
 
-    for key, values in results.items():
-        print(f"{key}: {np.mean(values):.4f}")
+    # uśrednienie metryk jakości
+    test_result = {key.lower(): round(float(np.mean(values)), 4) for key, values in results.items()}
 
+    # metryki różnorodności
     total_items = dataset.item_num
-    for k in k_list:
-        ic = ItemCoverage(all_topk, total_items, k)
-        gi = GiniIndex(all_topk, total_items, k)
-        ap = np.mean([AveragePopularity(topk_indices, item_popularity, k) for topk_indices in all_topk])
-        print(f"AvgPop@{k}: {ap:.4f}")
-        print(f"ItemCoverage@{k}: {ic:.4f}")
-        print(f"GiniIndex@{k}: {gi:.4f}")
+    DIVERSITY_METRICS = {
+        'averagepopularity': lambda k: np.mean([AveragePopularity(ti, item_popularity, k) for ti in all_topk]),
+        'itemcoverage': lambda k: ItemCoverage(all_topk, total_items, k),
+        'giniindex': lambda k: GiniIndex(all_topk, total_items, k),
+    }
+    for metric, fn in DIVERSITY_METRICS.items():
+        for k in k_list:
+            test_result[f"{metric.lower()}@{k}"] = round(float(fn(k)), 4)
+
+    # wypisanie wyników
+    for key, value in test_result.items():
+        print(f"{key} : {value:.4f}")
+
+    # zapis do JSON
+    with open(f"saved/{config['model']}_{config['dataset']}/results_N.json", 'w') as f:
+        json.dump({"test_result": test_result}, f, indent=2)
     
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--model_path', type=str, required=True, help='Path to the .pth model file')
-    # args = parser.parse_args()
-
-    evaluate_playlist("saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/GRU4Rec-Apr-21-2026_11-28-51.pth")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_path', type=str)
+    args = parser.parse_args()
+    evaluate_playlist(model_file="saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/GRU4Rec-Apr-26-2026_22-23-55.pth")

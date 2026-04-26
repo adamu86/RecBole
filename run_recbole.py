@@ -5,6 +5,7 @@ from recbole.data import create_dataset, data_preparation
 from recbole.model.sequential_recommender import GRU4Rec
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
+from evaluate_playlist import evaluate_playlist
 from pathlib import Path
 import traceback
 import torch
@@ -32,7 +33,6 @@ model_dict = {
     }
 }
 
-results = {}
 dataset_dir = Path("dataset")
 dataset_dict = {p.name: p for p in dataset_dir.iterdir() if p.is_dir()}
 logger = getLogger()
@@ -81,17 +81,16 @@ for model_name in model_dict.keys():
             )
             test_result = trainer.evaluate(test_data)
 
-            logger.info(f"Best valid score: {best_valid_score}, result: {best_valid_result}")
-            logger.info(f"Test result for {model_name} on {dataset_name}: {test_result}")
+            with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
+                json.dump({"test_result": test_result}, f, indent=2)
 
-            results[f"{model_name}_{dataset_name}"] = {
-                'best_valid_score': best_valid_score,
-                'best_valid_result': best_valid_result,
-                'test_result': test_result
-            }
-
-            with open(f'saved/{model_name}_{dataset_name}/results.json', 'w') as f:
-                json.dump(results, f, indent=2)
+            evaluate_playlist(
+                config=config,
+                model=model,
+                dataset=dataset,
+                train_data=train_data,
+                test_data=test_data
+            )
 
             del model, trainer, dataset, train_data, valid_data, test_data
             gc.collect()
@@ -99,7 +98,6 @@ for model_name in model_dict.keys():
         except Exception as e:
             logger.error(f"Failed {model_name} on {dataset_name}: {e}")
             traceback.print_exc()
-            results[f"{model_name}_{dataset_name}"] = {'error': str(e)}
             torch.cuda.empty_cache()
             continue
 

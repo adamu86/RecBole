@@ -30,7 +30,7 @@ plots/*
 
 30music_*.yaml
 30music.yaml
-results.json
+results_*.json
 
 process.sh
 run_model.py
