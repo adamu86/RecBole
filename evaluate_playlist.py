@@ -19,38 +19,65 @@ METRICS = [
 ]
 
 def Recall(relevant, total_relevant, k):
-    return relevant[:k].sum() / total_relevant
+    numerator = np.array(relevant[:k]).sum()
+    denominator = total_relevant
+    return numerator / denominator if denominator > 0 else 0.0
 
 def Precision(relevant, k):
-    return relevant[:k].sum() / k
+    numerator = np.array(relevant[:k]).sum()
+    denominator = k
+    return numerator / denominator if denominator > 0 else 0.0
 
 def HitRate(relevant, k):
-    return 1.0 if relevant[:k].sum() > 0 else 0.0
+    return 1.0 if np.array(relevant[:k]).sum() > 0 else 0.0
 
 def Mean(metric_fn, relevant_list, k, **kwargs):
     return np.mean([metric_fn(r, k, **kwargs) for r in relevant_list])
 
 def ReciprocalRank(relevant, k):
-    return next((1.0 / (i + 1) for i, hit in enumerate(relevant[:k]) if hit), 0.0)
+    numerator = 1
+    denominator = [(i + 1) for i, hit in enumerate(relevant[:k]) if hit][0]
+    return numerator / denominator if denominator > 0 else 0.0
     
 def AveragePrecision(relevant, total_relevant, k):
+    numerator = 0.0
     hits = 0
-    psum = 0.0
-    for i, hit in enumerate(relevant[:k]):
+    for j, hit in enumerate(relevant[:k]):
         if hit:
             hits += 1
-            psum += hits / (i + 1)
-    return psum / total_relevant
+            numerator += hits / (j + 1)
+    denominator = min(total_relevant, k)
+    return numerator / denominator if denominator > 0 else 0.0
 
 def NormalizedDiscountedCumulativeGain(relevant, total_relevant, k):
-    dcg = 0.0
-    idcg = 0.0
-    for i, hit in enumerate(relevant[:k]):
-        dcg += hit / np.log2(1 + (i + 1))
-    for i in range(min(total_relevant, k)):
-        idcg += 1.0 / np.log2(1 + (i + 1))
+    dcg = np.sum([1.0 / np.log2(1 + (i + 1)) for i, hit in enumerate(relevant[:k]) if hit])
+    idcg = np.sum([1.0 / np.log2(1 + (i + 1)) for i in range(min(total_relevant, k))])
     return dcg / idcg if idcg > 0 else 0.0
 
+def AveragePopularity(topk_indices, item_popularity, k):
+    numerator = np.sum([item_popularity.get(int(i), 0) for i in topk_indices[:k]])
+    denominator = len(topk_indices[:k])
+    return numerator / denominator if denominator > 0 else 0.0
+
+def ItemCoverage(topk_indices_all_sessions, total_items, k):
+    numerator = len(set(idx for topk_indices in topk_indices_all_sessions for idx in topk_indices[:k]))
+    denominator = total_items
+    return numerator / denominator
+
+def GiniIndex(topk_indices_all_sessions, total_items, k):
+    counts = np.zeros(total_items)
+    for topk_indices in topk_indices_all_sessions:
+        for idx in topk_indices[:k]:
+            counts[int(idx)] += 1
+    
+    P_i = np.sort(counts)
+    I = total_items
+    i = np.arange(1, I + 1)
+    
+    numerator = np.sum((2 * i - I - 1) * P_i)
+    denominator = I * np.sum(P_i)
+
+    return numerator / denominator if denominator > 0 else 0.0
 
 def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
     print(f"Loading model: {model_file}")
@@ -80,7 +107,11 @@ def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
 
     results = {f"{metric}@{k}": [] for metric in [name for name, _ in metrics] for k in k_list}
 
+    all_topk = []
     max_k = max(k_list)
+
+    train_df = train_data.dataset.inter_feat
+    item_popularity = Counter(train_df[item_id_field].cpu().numpy().tolist())
 
     with torch.no_grad():
         for session_id, items_with_time in tqdm(sessions.items(), desc="Evaluating sessions"):
@@ -95,9 +126,6 @@ def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
             session_split_idx = len(session_items) // 2
             session_context = session_items[:session_split_idx]
             session_target = set(session_items[session_split_idx:])
-
-            # liczymy liczbę utworów w sekwencji docelowej
-            total_relevant = len(session_target)
 
             # tworzymy tensor kontekstowy, pierwsze len(session_context) elementów to utwory z sekwencji kontekstowej
             context_tensor = torch.zeros(config['MAX_ITEM_LIST_LENGTH'], dtype=torch.long)
@@ -116,14 +144,25 @@ def evaluate_playlist(model_file, k_list=K_LIST, metrics=METRICS):
             # sprawdzamy, czy model trafił utwory z sekwencji docelowej
             relevant = np.array([1.0 if idx in session_target else 0.0 for idx in topk_indices])
 
+            # dodajemy predykcje do listy wszystkich predykcji
+            all_topk.append(topk_indices)
+
             # obliczamy metryki
             for k in k_list:
                 for name, fn in metrics:
-                    results[f'{name}@{k}'].append(fn(relevant, total_relevant, k))
+                    results[f'{name}@{k}'].append(fn(relevant, len(session_target), k))
 
     for key, values in results.items():
         print(f"{key}: {np.mean(values):.4f}")
 
+    total_items = dataset.item_num
+    for k in k_list:
+        ic = ItemCoverage(all_topk, total_items, k)
+        gi = GiniIndex(all_topk, total_items, k)
+        ap = np.mean([AveragePopularity(topk_indices, item_popularity, k) for topk_indices in all_topk])
+        print(f"AvgPop@{k}: {ap:.4f}")
+        print(f"ItemCoverage@{k}: {ic:.4f}")
+        print(f"GiniIndex@{k}: {gi:.4f}")
     
 
 if __name__ == '__main__':
