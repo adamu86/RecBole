@@ -5,7 +5,7 @@ import {
   type TrackItem,
   type TrackRecommendation,
 } from "./service";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 
 const page = ref<number>(1);
 const limit = ref<number>(25);
@@ -13,6 +13,7 @@ const offset = computed(() => (page.value - 1) * limit.value);
 const searchQuery = ref<string>("Avicii");
 const k = ref<number>(20);
 const interval = ref<number>(2);
+const autoContinue = ref<boolean>(false);
 const autoPlaying = ref<boolean>(false);
 const selectedTracks = ref<TrackItem[]>([]);
 const tracks = ref<TrackItem[]>([]);
@@ -86,6 +87,12 @@ const selectTrack = (trackId: string, trackName: string) => {
 }
 
 const grayedOut = (trackName: string) => selectedTracks.value.some((t) => t.name === trackName) ? 'opacity-25' : '';
+
+watch(() => selectedTracks.value.length, () => {
+  if (autoContinue.value && !autoPlaying.value) {
+    getRecommendations();
+  }
+});
 
 onMounted(() => {
   getTracks();
@@ -179,7 +186,7 @@ onMounted(() => {
         </button>
       </form>
     </div>
-    <div class="flex justify-end">
+    <div class="flex justify-end gap-2">
       <button @click="selectedTracks.splice(0, selectedTracks.length)">
         <Icon icon="fa-solid fa-eraser" />
       </button>
@@ -190,8 +197,11 @@ onMounted(() => {
         <Icon icon="fa-solid fa-thumbs-up" />
       </button>
       <input v-model="interval" placeholder="Interval (s)..."/>
-      <button @click="autoPlaying = !autoPlaying; if (autoPlaying) autoPlay();">
+      <button @click.prevent="autoPlaying = !autoPlaying; if (autoPlaying) autoPlay();">
         <Icon :icon="autoPlaying ? 'fa-solid fa-stop' : 'fa-solid fa-play'"/>
+      </button>
+      <button @click.prevent="autoContinue = !autoContinue">
+        <Icon :icon="autoContinue ? 'fa-solid fa-clock-rotate-left' : 'fa-solid fa-rotate-left'"/>
       </button>
     </form>
   </main>
