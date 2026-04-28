@@ -8,3 +8,53 @@
 body {
   font-family: 'Rubik', sans-serif;
 }
+
+button,
+li {
+  transition: background-color 0.1s ease-in-out;
+}
+
+button {
+  @apply
+  aspect-square h-10 p-2 rounded-sm bg-teal-600 hover:bg-teal-700 text-white cursor-pointer
+}
+
+input {
+  @apply
+  p-2 h-10 rounded-sm outline-none w-full bg-gray-700/10 focus:ring-2 focus:ring-teal-600 transition-all
+}
+
+ul {
+  @apply
+  flex flex-col gap-1 overflow-y-auto p-2 bg-teal-700/10 rounded-b-sm
+}
+
+li {
+  @apply
+  relative cursor-pointer
+}
+
+.breadcrumb {
+  @apply
+  bg-teal-600 text-white rounded px-1 opacity-0 group-hover:opacity-100
+}
+
+.breadcrumb-group {
+  @apply
+  absolute top-full left-0 z-100 grid grid-cols-[auto_auto] gap-1 pointer-events-none
+}
+
+.rank {
+  @apply
+  bg-white rounded px-1 mr-1 group-hover:font-bold
+}
+
+.column {
+  @apply
+  grid grid-rows-[auto_1fr] min-h-0
+}
+
+.column-title {
+  @apply
+  p-2 text-xl font-semibold bg-teal-700/15 rounded-t-sm
+}
