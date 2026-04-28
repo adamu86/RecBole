@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import torch
+import glob
+from typing import List
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,10 +16,8 @@ def _patched_torch_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = _patched_torch_load
 
-MODEL_NAME = "GRU4Rec"
 DATASET_NAME = "30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-
-MODEL_FILE = f"saved/{MODEL_NAME}_{DATASET_NAME}/GRU4Rec-Apr-24-2026_21-56-29.pth"
+MODEL_FILE = f"saved/GRU4Rec_{DATASET_NAME}/GRU4Rec-Apr-28-2026_16-24-56.pth"
 
 print(f"Model: {MODEL_FILE}")
 config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
@@ -63,6 +63,13 @@ class TracksResponse(BaseModel):
     limit: int
     tracks: list[TrackItem]
 
+class ModelRequest(BaseModel):
+    model_path: str
+
+class Status(BaseModel):
+    model: str
+    dataset: str
+
 app = FastAPI()
 
 app.add_middleware(
@@ -72,7 +79,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/tracks", response_model=TracksResponse)
+@app.get("/status", response_model=Status)
+def get_current_model():
+    return Status(
+        model=MODEL_FILE,
+        dataset=DATASET_NAME
+    )
+
+@app.get("/models", response_model=List[str])
+def get_model():
+    return glob.glob("saved/**/*.pth", recursive=True)
+
+@app.post("/model", response_model=Status)
+def set_model(req: ModelRequest):
+    global config, model, dataset, train_data, valid_data, test_data, TRACK_NAMES, DATASET_NAME, MODEL_FILE
+    model_path = req.model_path
+
+    MODEL_FILE = model_path
+
+    config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
+        model_file=MODEL_FILE
+    )
+    model = model.to("cpu").eval()
+
+    DATASET_NAME = config['dataset']
+
+    _tracks_path = f"dataset/{DATASET_NAME}/tracks.tsv"
+    if os.path.exists(_tracks_path):
+        _tracks_df = pd.read_csv(_tracks_path, sep="\t", header=None, usecols=[0, 1])
+        _tracks_df.columns = ["id", "name"]
+        _tracks_df["id"] = _tracks_df["id"].astype(str)
+        TRACK_NAMES = dict(zip(_tracks_df["id"], _tracks_df["name"]))
+    else:
+        TRACK_NAMES = {}
+
+    return Status(
+        model=MODEL_FILE,
+        dataset=DATASET_NAME
+    )
+
+@app.get("/tracks")
 def get_tracks(req: TracksRequest = Depends()):
     if not TRACK_NAMES:
         raise HTTPException(404, "No tracks data")

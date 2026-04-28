@@ -22,6 +22,53 @@ export interface RecommendResponse {
     recommendations: TrackRecommendation[];
 }
 
+export interface ModelRequest {
+    model_path: string;
+}
+
+export interface Status {
+    model: string;
+    dataset: string;
+}
+
+export async function fetchStatus(): Promise<Status> {
+    const res = await fetch("http://localhost:8000/status");
+
+    if (!res.ok) {
+        throw new Error(`Status fetch failed: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+export async function fetchModels(): Promise<string[]> {
+    const res = await fetch("http://localhost:8000/models");
+
+    if (!res.ok) {
+        throw new Error(`Models fetch failed: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+export async function setModel(modelPath: string): Promise<ModelRequest> {
+    const res = await fetch("http://localhost:8000/model", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            model_path: modelPath
+        })
+    });
+
+    if (!res.ok) {
+        throw new Error(`Model set failed: ${res.status}`);
+    }
+
+    return res.json();
+}
+
 export async function fetchTracks(
     offset: number = 0,
     limit: number = 50,

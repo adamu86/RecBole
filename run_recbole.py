@@ -2,7 +2,7 @@ import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import GRU4Rec
+from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, NextItNet, SRGNN
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from evaluate_playlist import evaluate_playlist
@@ -15,21 +15,52 @@ import gc
 import os
 
 _original_torch_load = torch.load
-
 def _patched_torch_load(*args, **kwargs):
     kwargs['weights_only'] = False
     return _original_torch_load(*args, **kwargs)
-
 torch.load = _patched_torch_load
 
-
 model_dict = {
+    'FPMC': {
+        'parameter_dict': {
+
+        },
+        'model': FPMC
+    },
     'GRU4Rec': {
         'parameter_dict': {
             'train_neg_sample_args': None,
             'neg_sampling': None
         },
         'model': GRU4Rec
+    },
+    'NARM': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NARM
+    },
+    'STAMP': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': STAMP
+    },
+    'NextItNet': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NextItNet
+    },
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
     }
 }
 

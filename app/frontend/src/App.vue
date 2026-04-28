@@ -2,6 +2,9 @@
 import {
   fetchTracks,
   fetchRecommendations,
+  fetchModels,
+  setModel,
+  fetchStatus,
   type TrackItem,
   type TrackRecommendation,
 } from "./service";
@@ -19,6 +22,9 @@ const selectedTracks = ref<TrackItem[]>([]);
 const tracks = ref<TrackItem[]>([]);
 const recommendations = ref<TrackRecommendation[]>([]);
 const isFetchingTracks = ref<boolean>(false);
+const models = ref<string[]>([]);
+const currentModel = ref<string>("");
+const loadingModel = ref<boolean>(false);
 
 const getTracks = async () => {
   isFetchingTracks.value = true;
@@ -88,20 +94,67 @@ const selectTrack = (trackId: string, trackName: string) => {
 
 const grayedOut = (trackName: string) => selectedTracks.value.some((t) => t.name === trackName) ? 'opacity-25' : '';
 
+const getModels = async () => {
+  models.value = await fetchModels();
+  models.value.sort();
+};
+
+const setNewModel = async (modelPath: string) => {
+  if (modelPath) {
+    loadingModel.value = true;
+    try {
+      resetPage();
+      tracks.value = [];
+      selectedTracks.value = [];
+      recommendations.value = [];
+      autoContinue.value = false;
+      autoPlaying.value = false;
+      currentModel.value = modelPath;
+      await setModel(modelPath);
+      await init();
+    } finally {
+      loadingModel.value = false;
+    }
+  }
+};
+
+const init = async () => {
+  const status = await fetchStatus();
+  currentModel.value = status.model;
+  console.log(status);
+  getModels();
+  getTracks();
+}
+
 watch(() => selectedTracks.value.length, () => {
   if (autoContinue.value && !autoPlaying.value) {
     getRecommendations();
   }
 });
 
-onMounted(() => {
-  getTracks();
-});
+onMounted(init);
 </script>
 
 <template>
-  <main class="grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-4 p-4 h-screen overflow-hidden">
-    <h2 class="text-3xl font-bold col-span-3">Music Recommender</h2>
+  <main class="grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-4 p-4 h-screen overflow-hidden" :class="loadingModel ? '[&>*]:cursor-not-allowed' : ''">
+    <h2 class="col-span-3 flex flex-row justify-between">
+      <span class="text-3xl font-bold">
+        Music Recommender
+      </span>
+      <div class="flex items-center">
+        <Icon icon="fa-solid fa-spinner" v-if="loadingModel" class="animate-spin"/>
+        <select :disabled="loadingModel" class="cursor-pointer" @change="(e) => setNewModel(e.target.value)">
+          <option
+            v-for="model in models"
+            :key="model"
+            :selected="model === currentModel"
+            :value="model"
+          >
+            {{ model.split("/").pop()?.split(".")[0] }}
+          </option>
+        </select>
+      </div>
+    </h2>
     <div class="column">
       <h2 class="column-title">Available Tracks</h2>
       <ul>

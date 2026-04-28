@@ -67,14 +67,11 @@ def GiniIndex(topk_indices_all_sessions, total_items, k):
     for topk_indices in topk_indices_all_sessions:
         for idx in topk_indices[:k]:
             counts[int(idx)] += 1
-    
     P_i = np.sort(counts)
     I = total_items
     i = np.arange(1, I + 1)
-    
     numerator = np.sum((2 * i - I - 1) * P_i)
     denominator = I * np.sum(P_i)
-
     return numerator / denominator if denominator > 0 else 0.0
 
 def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, config=None, model=None, dataset=None, train_data=None, test_data=None):   
