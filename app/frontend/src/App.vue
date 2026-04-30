@@ -5,8 +5,12 @@ import {
   fetchModels,
   setModel,
   fetchStatus,
+  fetchMetrics,
+  fetchLog,
   type TrackItem,
   type TrackRecommendation,
+  type ParsedLogResponse,
+  type EpochData,
 } from "./service";
 import { ref, computed, onMounted, watch } from "vue";
 
@@ -24,6 +28,10 @@ const recommendations = ref<TrackRecommendation[]>([]);
 const isFetchingTracks = ref<boolean>(false);
 const models = ref<string[]>([]);
 const currentModel = ref<string>("");
+const currentMetricsTable = ref<{ results_1: {}, results_N: {} }>({results_1: {}, results_N: {}});
+const showMetricsTable = ref<boolean>(false);
+const currentLog = ref<ParsedLogResponse>({ epochs: [] });
+const showLog = ref<boolean>(false);
 const loadingModel = ref<boolean>(false);
 
 const getTracks = async () => {
@@ -118,6 +126,15 @@ const setNewModel = async (modelPath: string) => {
   }
 };
 
+const getMetrics = async () => {
+  currentMetricsTable.value = await fetchMetrics();
+};
+
+const getLog = async () => {
+  currentLog.value = await fetchLog();
+  console.log(currentLog.value);
+};
+
 const init = async () => {
   const status = await fetchStatus();
   currentModel.value = status.model;
@@ -126,6 +143,8 @@ const init = async () => {
   }
   getModels();
   getTracks();
+  getMetrics();
+  getLog();
 }
 
 watch(() => selectedTracks.value.length, () => {
@@ -146,20 +165,46 @@ onMounted(init);
       <div v-if="models.length > 0" class="flex items-center">
         <Transition name="fade" mode="out-in">
           <Icon v-if="loadingModel" icon="fa-solid fa-spinner" class="animate-spin"/>
-          <Icon v-else icon="fa-solid fa-check" class="text-green-600 text-sm"/>
+          <div v-else class="flex gap-1 items-center">
+            <div class="relative">
+              <Icon icon="fa-solid fa-chart-column" @click="showLog = !showLog"/>
+              <div v-if="currentLog" v-show="showLog" class="text-nowrap absolute right-full max-h-[75vh] top-0 overflow-x-hidden z-10 text-black grid gap-x-1 rounded-b-sm">
+                
+              </div>
+            </div>
+            <div class="relative">
+              <Icon icon="fa-solid fa-table" @click="showMetricsTable = !showMetricsTable"/>
+              <div v-if="currentMetricsTable" v-show="showMetricsTable" class="text-nowrap absolute right-full max-h-[75vh] top-0 overflow-x-hidden z-10 text-black grid gap-x-1 rounded-b-sm">
+                <div class="bg-white col-span-2 sticky top-0 grid grid-cols-2 gap-x-1">
+                  <h2 class="column-title">Results (1 GT)</h2>
+                  <h2 class="column-title">Results (N GT)</h2>
+                </div>
+                <div class="column bg-white p-2">
+                  <div v-for="(val, metric) in (Object.values(currentMetricsTable.results_1)[0] ?? {})" :key="metric" >
+                    {{ metric }}: {{ val }}
+                  </div>
+                </div>
+                <div class="column bg-white p-2">
+                  <div v-for="(val, metric) in (Object.values(currentMetricsTable.results_N)[0] ?? {})" :key="metric">
+                    {{ metric }}: {{ val }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </Transition>
         <select :disabled="loadingModel" class="cursor-pointer" @change="(e) => setNewModel(e.target.value)">
           <option
-            v-for="model in models"
-            :key="model"
-            :selected="model === currentModel"
-            :value="model"
+          v-for="model in models"
+          :key="model"
+          :selected="model === currentModel"
+          :value="model"
           >
-            {{ model.split("/").pop()?.split(".")[0] }}
-          </option>
-        </select>
-      </div>
-    </h2>
+          {{ model.split("/").pop()?.split(".")[0] }}
+        </option>
+      </select>
+    </div>
+  </h2>
     <div class="column">
       <h2 class="column-title">Available Tracks</h2>
       <ul>

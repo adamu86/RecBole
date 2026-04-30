@@ -56,7 +56,7 @@ li {
 
 .column-title {
   @apply
-  p-2 text-xl font-semibold bg-teal-700/15 rounded-t-sm
+  p-2 text-xl font-semibold bg-teal-700/15 rounded-t-sm select-none
 }
 
 .fade-enter-active,

@@ -31,6 +31,28 @@ export interface Status {
     dataset: string;
 }
 
+export interface MetricsResponse {
+    results_1: {
+        [key: string]: any;
+    };
+    results_N: {
+        [key: string]: any;
+    };
+}
+
+export interface EpochData {
+    epoch: number;
+    train_loss: number | null;
+    train_time: number | null;
+    valid_score: number | null;
+    eval_time: number | null;
+    metrics: { [key: string]: number };
+}
+
+export interface ParsedLogResponse {
+    epochs: EpochData[];
+}
+
 export async function fetchStatus(): Promise<Status> {
     const res = await fetch("http://localhost:8000/status");
 
@@ -64,6 +86,26 @@ export async function setModel(modelPath: string): Promise<ModelRequest> {
 
     if (!res.ok) {
         throw new Error(`Model set failed: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+export async function fetchMetrics(): Promise<MetricsResponse> {
+    const res = await fetch("http://localhost:8000/metrics");
+
+    if (!res.ok) {
+        throw new Error(`Metrics fetch failed: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+export async function fetchLog(): Promise<ParsedLogResponse> {
+    const res = await fetch("http://localhost:8000/log");
+
+    if (!res.ok) {
+        throw new Error(`Log fetch failed: ${res.status}`);
     }
 
     return res.json();

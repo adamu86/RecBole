@@ -22,6 +22,7 @@
     "**/hyper.test": true,
     "**/LICENSE": true,
     // "**/log*": true,
+    "log_tensorboard": true,
     "**/__pycache__": true,
     "**/__init__.py": true,
     "run_model.py": true,
