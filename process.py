@@ -109,9 +109,9 @@ def initialize():
                 {
                     "id": st["id"],
                     "ps": st["playstart"],
-                    "pt": st["playtime"],
-                    "pr": st.get("playratio"),
-                    "ac": st.get("action")
+                    # "pt": st["playtime"],
+                    # "pr": st.get("playratio"),
+                    # "ac": st.get("action")
                 }
                 for st in session_objects["objects"][-(MAX_SESSION_RECENT_TRACKS + 1):-1]
             ]
@@ -213,7 +213,7 @@ def make_inter_file(alias):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        fout.write("session_id:token\tuser_id:token\titem_id:token\ttimestamp:float\trating:float\n")
+        fout.write("session_id:token\tuser_id:token\titem_id:token\ttimestamp:float\n")
         
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Building .inter from {input_path}"):
             parts = line.strip().split("\t")
@@ -223,13 +223,13 @@ def make_inter_file(alias):
             tracks = json.loads(parts[3])
             
             for track in tracks:
-                fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{int(timestamp) + int(track['ps'])}\t{track['pr']}\n")
+                fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{int(timestamp) + int(track['ps'])}\n")
 
 def make_tracks_file(alias):
     print("\nCreating tracks file...")
 
     input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    tracks_source = get_data_file_path(DATA_PATH_RAW, "tracks.tsv")
+    tracks_source = get_data_file_path(DATA_PATH_RAW, "tracks")
     output_path = os.path.join("dataset", alias, "tracks.tsv")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -252,8 +252,6 @@ def make_tracks_file(alias):
                 seen.add(stripped)
                 fout.write(line)
                 kept += 1
-
-    print(f"Saved {kept:,} unique tracks (out of {len(track_ids):,} unique IDs) to {output_path}")
 
 def make_track_names_file():
     print("\nCreating track names file...")
@@ -287,14 +285,14 @@ if __name__ == "__main__":
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
         initialize()
 
-    if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks.tsv")):
+    if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks")):
         make_track_names_file()
 
     filter_by_time_window()
     copy_processed_to_temp()
     filter_tracks_by_playcount()
     copy_processed_to_temp()
-    fill_playratio()
+    # fill_playratio()
     make_inter_file(get_dataset_name())
     make_tracks_file(get_dataset_name())
     remove_temp_file()

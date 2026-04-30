@@ -24,6 +24,7 @@
     "**/log*": true,
     "**/__pycache__": true,
     "**/__init__.py": true,
+    "run_model.py": true,
 
     // "env_*.bat": true,
     "Dockerfile": true,
