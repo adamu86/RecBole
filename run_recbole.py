@@ -77,6 +77,10 @@ for dataset_name in dataset_dict.keys():
 
 for model_name in model_dict.keys():
     for dataset_name in dataset_dict.keys():
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
+
         try:
             config = Config(
                 model=model_name, 

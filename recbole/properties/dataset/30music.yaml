@@ -65,7 +65,7 @@ POSITION_FIELD: position_id # (str) Field name of the generated position sequenc
 benchmark_filename: ~ # (list) List of pre-split user-item interaction suffix.
 
 # Training Settings
-epochs: 20 # (int) The number of training epochs.
+epochs: 30 # (int) The number of training epochs.
 train_batch_size: 2048 # (int) The training batch size.
 learner: adam # (str) The name of used optimizer.
 learning_rate: 0.001 # (float) Learning rate.
