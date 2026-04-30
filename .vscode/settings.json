@@ -21,7 +21,7 @@
     "**/*.cfg": true,
     "**/hyper.test": true,
     "**/LICENSE": true,
-    "**/log*": true,
+    // "**/log*": true,
     "**/__pycache__": true,
     "**/__init__.py": true,
     "run_model.py": true,

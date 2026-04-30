@@ -14,7 +14,7 @@ const page = ref<number>(1);
 const limit = ref<number>(25);
 const offset = computed(() => (page.value - 1) * limit.value);
 const searchQuery = ref<string>("Avicii");
-const k = ref<number>(20);
+const k = ref<number>(30);
 const interval = ref<number>(2);
 const autoContinue = ref<boolean>(false);
 const autoPlaying = ref<boolean>(false);
@@ -121,7 +121,9 @@ const setNewModel = async (modelPath: string) => {
 const init = async () => {
   const status = await fetchStatus();
   currentModel.value = status.model;
-  console.log(status);
+  for (const [key, value] of Object.entries(status)) {
+    console.log(`${key}: ${value}`);
+  }
   getModels();
   getTracks();
 }
@@ -136,13 +138,16 @@ onMounted(init);
 </script>
 
 <template>
-  <main class="grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-4 p-4 h-screen overflow-hidden" :class="loadingModel ? '[&>*]:cursor-not-allowed' : ''">
-    <h2 class="col-span-3 flex flex-row justify-between">
+  <main class="grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-2 p-4 h-screen overflow-hidden" :class="loadingModel ? '[&>*]:cursor-not-allowed' : ''">
+    <h2 class="col-span-3 mb-2 flex flex-row justify-between">
       <span class="text-3xl font-bold">
         Music Recommender
       </span>
-      <div class="flex items-center">
-        <Icon icon="fa-solid fa-spinner" v-if="loadingModel" class="animate-spin"/>
+      <div v-if="models.length > 0" class="flex items-center">
+        <Transition name="fade" mode="out-in">
+          <Icon v-if="loadingModel" icon="fa-solid fa-spinner" class="animate-spin"/>
+          <Icon v-else icon="fa-solid fa-check" class="text-green-600 text-sm"/>
+        </Transition>
         <select :disabled="loadingModel" class="cursor-pointer" @change="(e) => setNewModel(e.target.value)">
           <option
             v-for="model in models"
