@@ -9,6 +9,11 @@ body {
   font-family: 'Rubik', sans-serif;
 }
 
+main {
+  @apply
+  transition-all
+}
+
 button,
 li {
   transition: background-color 0.1s ease-in-out;
