@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: var(--color-sky-600);
+  --color-primary-hover: var(--color-sky-700);
+  --color-secondary: var(--color-sky-700);
+  --color-input: var(--color-gray-600);
+  --radius-base: var(--radius-sm);
+}
+
 @font-face {
   font-family: 'Rubik';
   src: url('./Rubik-Regular.ttf') format('truetype');
+}
+
+html {
+  @apply
+  text-gray-800
 }
 
 body {
@@ -21,37 +34,37 @@ li {
 
 button {
   @apply
-  aspect-square h-10 p-2 rounded-sm bg-teal-600 hover:bg-teal-700 text-white cursor-pointer
+  aspect-square h-10 p-2 rounded-base bg-primary hover:bg-primary-hover text-white cursor-pointer
 }
 
 input {
   @apply
-  p-2 h-10 rounded-sm outline-none w-full bg-gray-700/10 focus:ring-2 focus:ring-teal-600 transition-all
+  p-2 h-10 rounded-base outline-none w-full bg-input/10 focus:ring-1 focus:ring-primary focus:inset-ring-3 focus:inset-ring-primary transition-all
 }
 
 ul {
   @apply
-  flex flex-col gap-1 overflow-y-auto p-2 bg-teal-700/10 rounded-b-sm
+  flex flex-col gap-1 overflow-y-auto p-2 bg-secondary/10 rounded-b-base
 }
 
-li {
+.track {
   @apply
-  relative cursor-pointer
+  relative cursor-pointer bg-white/50 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:bg-white
 }
 
 .breadcrumb {
   @apply
-  bg-teal-600 text-white rounded px-1 opacity-0 group-hover:opacity-100
+  bg-primary text-white rounded px-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-all duration-100
 }
 
 .breadcrumb-group {
   @apply
-  absolute top-full left-0 z-100 grid grid-cols-[auto_auto] gap-1 pointer-events-none
+  absolute top-3/4 right-0 z-100 flex pointer-events-none grid grid-flow-col gap-1
 }
 
 .rank {
   @apply
-  bg-white rounded px-1 mr-1 group-hover:font-bold
+  bg-white px-1 rounded group-hover:font-bold h-fit
 }
 
 .column {
@@ -61,7 +74,7 @@ li {
 
 .column-title {
   @apply
-  p-2 text-xl font-semibold bg-teal-700/15 rounded-t-sm select-none
+  p-2 text-xl font-semibold bg-secondary/20 rounded-t-base select-none
 }
 
 .fade-enter-active {
@@ -73,5 +86,16 @@ li {
 
 .fade-enter-from,
 .fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-top-enter-active,
+.slide-fade-top-leave-active {
+  transition: all 0.1s ease-out;
+}
+
+.slide-fade-top-enter-from,
+.slide-fade-top-leave-to {
+  transform: translateY(10px);
   opacity: 0;
 }

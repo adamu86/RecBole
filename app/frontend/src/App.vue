@@ -6,8 +6,6 @@ import {
   setModel,
   fetchStatus,
   fetchMetrics,
-  type TrackItem,
-  type TrackRecommendation,
 } from "./service";
 import {
   CHART_COLORS,
@@ -15,12 +13,12 @@ import {
   buildChart,
   toggleChart,
   toggleMetric,
+  toggleMetricsTable,
   metricKeys,
   selectedMetrics,
   currentLog,
   showLog,
   loadLog,
-  type MetricsGroup,
   currentMetricsTable,
   showMetricsTable,
   getMetrics,
@@ -29,7 +27,7 @@ import { onMounted, watch, reactive } from "vue";
 
 const availableTracks = reactive({
   searchQuery: "Avicii",
-  items: [] as TrackItem[],
+  items: [] as Track[],
   page: {
     current: 1,
     itemsLimit: 25,
@@ -73,21 +71,18 @@ const search = () => {
 };
 
 const listeningHistory = reactive({
-  items: [] as TrackItem[],
-  addTrack(track: TrackItem | TrackRecommendation) {
-    this.items.push({
-      id: track.id,
-      name: track.name,
-    });
+  items: [] as Track[],
+  addTrack(track: Track) {
+    this.items.push(track);
   },
-  removeTrack(track: TrackItem) {
-    this.items = this.items.filter((t) => t.id !== track.id);
+  removeTrack(idx: number) {
+    this.items.splice(idx, 1);
   },
 });
 
 const recommendations = reactive({
   topk: 25 as number,
-  items: [] as TrackRecommendation[],
+  items: [] as Track[],
   interval: 5 as number,
   autoContinue: {
     value: false as boolean,
@@ -106,7 +101,7 @@ const recommendations = reactive({
     this.isFetching = true;
     try {
       const data = await fetchRecommendations(
-        listeningHistory.items.map((t: TrackItem) => parseInt(t.id)),
+        listeningHistory.items.map((t: Track) => parseInt(t.id)),
         recommendations.topk,
       );
       if (data) this.items = data.recommendations;
@@ -130,12 +125,11 @@ watch(
     while (recommendations.autoPlay.value) {
       await recommendations.fetch();
       const selectedIds = new Set(listeningHistory.items.map((t) => t.id));
-      const next = recommendations.items.find((r) => !selectedIds.has(r.id));
-      if (next) {
-        listeningHistory.addTrack({
-          id: next.id,
-          name: next.name,
-        });
+      const nextTrack = recommendations.items.find(
+        (r) => !selectedIds.has(r.id),
+      );
+      if (nextTrack) {
+        listeningHistory.addTrack(nextTrack);
       }
       await new Promise((resolve) =>
         setTimeout(resolve, recommendations.interval * 1000),
@@ -226,40 +220,43 @@ onMounted(init);
                 :class="showLog ? 'scale-115' : 'hover:scale-115 text-gray-500'"
                 @click="toggleChart"
               />
-              <div
-                v-if="currentLog.epochs.length"
-                v-show="showLog"
-                class="absolute right-0 top-full z-50 bg-white shadow-lg rounded-sm w-[50vw]"
-              >
-                <h2 class="column-title">Training log chart</h2>
-                <div class="flex gap-1 mb-6 overflow-x-auto p-2">
-                  <button
-                    v-for="(metric, i) in metricKeys"
-                    :key="metric"
-                    @click="toggleMetric(metric)"
-                    class="text-sm mb-2"
-                    :style="
-                      selectedMetrics.includes(metric)
-                        ? {
-                            backgroundColor:
-                              CHART_COLORS[i % CHART_COLORS.length] + '22',
-                            borderColor: CHART_COLORS[i % CHART_COLORS.length],
-                            color: CHART_COLORS[i % CHART_COLORS.length],
-                          }
-                        : {
-                            backgroundColor: '#f1f5f9',
-                            borderColor: '#cbd5e1',
-                            color: '#94a3b8',
-                          }
-                    "
-                  >
-                    {{ metric }}
-                  </button>
+              <Transition name="slide-fade-top">
+                <div
+                  v-if="currentLog.epochs.length"
+                  v-show="showLog"
+                  class="absolute right-0 top-full z-50 bg-white shadow-lg rounded-sm w-[50vw]"
+                >
+                  <h2 class="column-title">Training log chart</h2>
+                  <div class="flex gap-1 mb-6 overflow-x-auto p-2">
+                    <button
+                      v-for="(metric, i) in metricKeys"
+                      :key="metric"
+                      @click="toggleMetric(metric)"
+                      class="text-sm mb-2"
+                      :style="
+                        selectedMetrics.includes(metric)
+                          ? {
+                              backgroundColor:
+                                CHART_COLORS[i % CHART_COLORS.length] + '22',
+                              borderColor:
+                                CHART_COLORS[i % CHART_COLORS.length],
+                              color: CHART_COLORS[i % CHART_COLORS.length],
+                            }
+                          : {
+                              backgroundColor: '#f1f5f9',
+                              borderColor: '#cbd5e1',
+                              color: '#94a3b8',
+                            }
+                      "
+                    >
+                      {{ metric }}
+                    </button>
+                  </div>
+                  <div style="height: 50vh">
+                    <canvas ref="chartCanvas"></canvas>
+                  </div>
                 </div>
-                <div style="height: 50vh">
-                  <canvas ref="chartCanvas"></canvas>
-                </div>
-              </div>
+              </Transition>
             </div>
             <div class="relative">
               <Icon
@@ -270,56 +267,58 @@ onMounted(init);
                     ? 'scale-115'
                     : 'hover:scale-115 text-gray-500'
                 "
-                @click="showMetricsTable = !showMetricsTable"
+                @click="toggleMetricsTable"
               />
-              <div
-                v-if="currentMetricsTable"
-                v-show="showMetricsTable"
-                class="text-nowrap absolute right-0 max-h-[75vh] shadow-lg overflow-x-hidden z-10 text-black grid gap-x-1 rounded-b-sm"
-              >
+              <Transition name="slide-fade-top">
                 <div
-                  class="bg-white col-span-2 sticky top-0 grid grid-cols-2 gap-x-1"
+                  v-if="currentMetricsTable"
+                  v-show="showMetricsTable"
+                  class="text-nowrap absolute right-0 top-full max-h-[75vh] shadow-lg overflow-x-hidden z-10 text-black grid gap-x-1 rounded-b-sm bg-gray-300 border border-gray-300"
                 >
-                  <h2 class="column-title">Eval. test results (1 GT)</h2>
-                  <h2 class="column-title">Eval. test results (N GT)</h2>
-                </div>
-                <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
-                  <template
-                    v-for="(val, metric) in Object.values(
-                      currentMetricsTable.results_1,
-                    )[0] ?? {}"
-                    :key="metric"
+                  <div
+                    class="bg-white col-span-2 sticky top-0 grid grid-cols-2 gap-x-1"
                   >
-                    <div class="text-right px-2 py-1">
-                      {{ metric.split("@")[0] }}
-                    </div>
-                    <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
-                      @{{ metric.split("@")[1] }}
-                    </div>
-                    <div class="px-2 py-1 font-medium text-left">
-                      {{ val.toFixed(3) }}
-                    </div>
-                  </template>
+                    <h2 class="column-title">Eval. test results (1 GT)</h2>
+                    <h2 class="column-title">Eval. test results (N GT)</h2>
+                  </div>
+                  <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
+                    <template
+                      v-for="(val, metric) in Object.values(
+                        currentMetricsTable.results_1,
+                      )[0] ?? {}"
+                      :key="metric"
+                    >
+                      <div class="text-right px-2 py-1">
+                        {{ metric.split("@")[0] }}
+                      </div>
+                      <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
+                        @{{ metric.split("@")[1] }}
+                      </div>
+                      <div class="px-2 py-1 font-medium text-left">
+                        {{ val.toFixed(3) }}
+                      </div>
+                    </template>
+                  </div>
+                  <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
+                    <template
+                      v-for="(val, metric) in Object.values(
+                        currentMetricsTable.results_N,
+                      )[0] ?? {}"
+                      :key="metric"
+                    >
+                      <div class="text-right px-2 py-1">
+                        {{ metric.split("@")[0] }}
+                      </div>
+                      <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
+                        @{{ metric.split("@")[1] }}
+                      </div>
+                      <div class="px-2 py-1 font-medium text-left">
+                        {{ val.toFixed(3) }}
+                      </div>
+                    </template>
+                  </div>
                 </div>
-                <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
-                  <template
-                    v-for="(val, metric) in Object.values(
-                      currentMetricsTable.results_N,
-                    )[0] ?? {}"
-                    :key="metric"
-                  >
-                    <div class="text-right px-2 py-1">
-                      {{ metric.split("@")[0] }}
-                    </div>
-                    <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
-                      @{{ metric.split("@")[1] }}
-                    </div>
-                    <div class="px-2 py-1 font-medium text-left">
-                      {{ val.toFixed(3) }}
-                    </div>
-                  </template>
-                </div>
-              </div>
+              </Transition>
             </div>
           </div>
         </Transition>
@@ -345,7 +344,11 @@ onMounted(init);
     <div class="column">
       <h2 class="column-title">Available tracks</h2>
       <TransitionGroup name="fade" tag="ul">
-        <li v-if="availableTracks.items.length === 0" class="p-2 text-gray-400" key="empty">
+        <li
+          v-if="availableTracks.items.length === 0"
+          class="p-2 text-gray-400"
+          key="empty"
+        >
           No songs available
         </li>
         <li
@@ -353,7 +356,7 @@ onMounted(init);
           v-for="track in availableTracks.items"
           @click="listeningHistory.addTrack(track)"
           :key="track.id"
-          class="group px-2 py-1 rounded-sm hover:bg-white bg-white/50"
+          class="group track"
         >
           {{ track.name }}
           <div class="breadcrumb-group">
@@ -376,8 +379,8 @@ onMounted(init);
           v-else
           v-for="(track, idx) in listeningHistory.items"
           :key="track.name"
-          @click="listeningHistory.removeTrack(track)"
-          class="group"
+          @click="listeningHistory.removeTrack(idx)"
+          class="group track"
         >
           <span class="rank">{{ idx + 1 }}</span>
           <div class="breadcrumb-group">
@@ -390,7 +393,11 @@ onMounted(init);
     <div class="column">
       <h2 class="column-title">Current recommendations</h2>
       <TransitionGroup name="fade" tag="ul">
-        <li v-if="recommendations.items.length === 0" class="p-2 text-gray-400" key="empty">
+        <li
+          v-if="recommendations.items.length === 0"
+          class="p-2 text-gray-400"
+          key="empty"
+        >
           No recommendations yet
         </li>
         <li
@@ -398,7 +405,7 @@ onMounted(init);
           v-for="recommendation in recommendations.items"
           :key="recommendation.id"
           @click="listeningHistory.addTrack(recommendation)"
-          class="group"
+          class="group track"
         >
           <span class="rank">
             {{ recommendation.rank }}
@@ -406,7 +413,7 @@ onMounted(init);
           <div class="breadcrumb-group">
             <div class="breadcrumb">ID: {{ recommendation.id }}</div>
             <div class="breadcrumb">
-              Score: {{ recommendation.score.toFixed(2) }}
+              Score: {{ recommendation.score?.toFixed(2) }}
             </div>
           </div>
           <span

@@ -1,14 +1,19 @@
 import { ref, computed, nextTick } from "vue";
-import { fetchLog, fetchMetrics, type ParsedLogResponse } from "./service";
+import { fetchLog, fetchMetrics } from "./service";
 import { Chart, LineController, LineElement, PointElement, LinearScale, CategoryScale, Legend, Tooltip, Filler } from 'chart.js';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Legend, Tooltip, Filler);
-export type MetricsGroup = Record<string, Record<string, number>>;
 export const chartCanvas = ref<HTMLCanvasElement | null>(null);
 export const selectedMetrics = ref<string[]>(['recall@10', 'precision@10', 'mrr@10', 'map@10', 'hit@10', 'ndcg@10']);
-export const currentLog = ref<ParsedLogResponse>({ epochs: [] });
+export const currentLog = ref<TrainingLog>({ epochs: [] });
 export const showLog = ref<boolean>(false);
+export const currentMetricsTable = ref<Metrics>();
+export const showMetricsTable = ref<boolean>(false);
 export let chartInstance: Chart | null = null;
+
+export const getMetrics = async () => {
+  currentMetricsTable.value = await fetchMetrics();
+};
 
 export const loadLog = async () => {
   currentLog.value = await fetchLog();
@@ -26,23 +31,29 @@ export const metricKeys = computed(() => {
   const keys = new Set<string>();
   keys.add('train_loss');
   keys.add('valid_score');
-  epochs.forEach(e => Object.keys(e.metrics).forEach(k => keys.add(k)));
+  epochs.forEach((e: Epoch) => Object.keys(e.metrics).forEach((k: string) => keys.add(k)));
   return Array.from(keys);
 });
 
-export const toggleMetric = (m: string) => {
-  const i = selectedMetrics.value.indexOf(m);
+export const toggleMetric = (metric: string) => {
+  const i = selectedMetrics.value.indexOf(metric);
   if (i >= 0) selectedMetrics.value.splice(i, 1);
-  else selectedMetrics.value.push(m);
+  else selectedMetrics.value.push(metric);
   buildChart();
 };
 
 export const toggleChart = async () => {
+  showMetricsTable.value = false;
   showLog.value = !showLog.value;
   if (showLog.value) {
     await nextTick();
     buildChart();
   }
+};
+
+export const toggleMetricsTable = () => {
+  showLog.value = false;
+  showMetricsTable.value = !showMetricsTable.value;
 };
 
 export const buildChart = () => {
@@ -55,13 +66,13 @@ export const buildChart = () => {
     chartInstance = null;
   }
 
-  const labels = epochs.map(e => `Epoch ${e.epoch + 1}`);
-  const active = selectedMetrics.value.filter(m => metricKeys.value.includes(m));
+  const labels = epochs.map((e: Epoch) => `Epoch ${e.epoch + 1}`);
+  const active = selectedMetrics.value.filter((m: string) => metricKeys.value.includes(m));
 
-  const datasets = active.map((metric) => {
+  const datasets = active.map((metric: string) => {
     const colorIdx = metricKeys.value.indexOf(metric);
     const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
-    const data = epochs.map(e => {
+    const data = epochs.map((e: Epoch) => {
       if (metric === 'train_loss') return e.train_loss ?? NaN;
       if (metric === 'valid_score') return e.valid_score ?? NaN;
       return e.metrics[metric] ?? NaN;
@@ -169,10 +180,4 @@ export const buildChart = () => {
       },
     },
   });
-};
-
-export const currentMetricsTable = ref<{results_1: MetricsGroup; results_N: MetricsGroup; }>({ results_1: {}, results_N: {} });
-export const showMetricsTable = ref<boolean>(false);
-export const getMetrics = async () => {
-  currentMetricsTable.value = await fetchMetrics();
 };

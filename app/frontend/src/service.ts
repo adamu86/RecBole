@@ -1,157 +1,61 @@
-export interface TrackItem {
-    id: string;
-    name: string;
-}
+const API_BASE = "http://localhost:8000";
 
-export interface TrackRecommendation {
-    rank: number;
-    id: string;
-    name: string;
-    score: number;
-}
-
-export interface TracksResponse {
-    total: number;
-    offset: number;
-    limit: number;
-    tracks: TrackItem[];
-}
-
-export interface RecommendResponse {
-    input_track_ids: string[];
-    recommendations: TrackRecommendation[];
-}
-
-export interface ModelRequest {
-    model_path: string;
-}
-
-export interface Status {
-    model: string;
-    dataset: string;
-}
-
-export interface MetricsResponse {
-    results_1: {
-        [key: string]: any;
-    };
-    results_N: {
-        [key: string]: any;
-    };
-}
-
-export interface EpochData {
-    epoch: number;
-    train_loss: number | null;
-    train_time: number | null;
-    valid_score: number | null;
-    eval_time: number | null;
-    metrics: { [key: string]: number };
-}
-
-export interface ParsedLogResponse {
-    epochs: EpochData[];
-}
-
-export async function fetchStatus(): Promise<Status> {
-    const res = await fetch("http://localhost:8000/status");
-
+async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const res = await fetch(`${API_BASE}${endpoint}`, options);
     if (!res.ok) {
-        throw new Error(`Status fetch failed: ${res.status}`);
+        throw new Error(`API request to ${endpoint} failed: ${res.status}`);
     }
-
     return res.json();
 }
 
-export async function fetchModels(): Promise<string[]> {
-    const res = await fetch("http://localhost:8000/models");
-
-    if (!res.ok) {
-        throw new Error(`Models fetch failed: ${res.status}`);
-    }
-
-    return res.json();
+export function fetchStatus(): Promise<Status> {
+    return apiFetch<Status>("/status");
 }
 
-export async function setModel(modelPath: string): Promise<ModelRequest> {
-    const res = await fetch("http://localhost:8000/model", {
+export function fetchModels(): Promise<string[]> {
+    return apiFetch<string[]>("/models");
+}
+
+export function setModel(modelPath: string): Promise<Status> {
+    return apiFetch<Status>("/model", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model_path: modelPath
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model_path: modelPath })
     });
-
-    if (!res.ok) {
-        throw new Error(`Model set failed: ${res.status}`);
-    }
-
-    return res.json();
 }
 
-export async function fetchMetrics(): Promise<MetricsResponse> {
-    const res = await fetch("http://localhost:8000/metrics");
-
-    if (!res.ok) {
-        throw new Error(`Metrics fetch failed: ${res.status}`);
-    }
-
-    return res.json();
+export function fetchMetrics(): Promise<Metrics> {
+    return apiFetch<Metrics>("/metrics");
 }
 
-export async function fetchLog(): Promise<ParsedLogResponse> {
-    const res = await fetch("http://localhost:8000/log");
-
-    if (!res.ok) {
-        throw new Error(`Log fetch failed: ${res.status}`);
-    }
-
-    return res.json();
+export function fetchLog(): Promise<TrainingLog> {
+    return apiFetch<TrainingLog>("/log");
 }
 
-export async function fetchTracks(
+export function fetchTracks(
     offset: number = 0,
     limit: number = 50,
     search?: string
-): Promise<TracksResponse> {
-    const params = new URLSearchParams();
-
-    params.append("offset", offset.toString());
-    params.append("limit", limit.toString());
+): Promise<TrackList> {
+    const params = new URLSearchParams({
+        offset: offset.toString(),
+        limit: limit.toString()
+    });
 
     if (search) {
         params.append("search", search);
     }
 
-    const res = await fetch(`http://localhost:8000/tracks?${params.toString()}`);
-
-    if (!res.ok) {
-        throw new Error(`Tracks fetch failed: ${res.status}`);
-    }
-
-    return res.json();
+    return apiFetch<TrackList>(`/tracks?${params.toString()}`);
 }
 
-export async function fetchRecommendations(
-    trackIds: number[],
+export function fetchRecommendations(
+    track_ids: number[],
     k: number = 20
-): Promise<RecommendResponse> {
-    const res = await fetch("http://localhost:8000/recommend", {
+): Promise<RecommendationList> {
+    return apiFetch<RecommendationList>("/recommend", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            track_ids: trackIds,
-            k
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ track_ids, k })
     });
-
-    if (!res.ok) {
-        throw new Error(`Recommend fetch failed: ${res.status}`);
-    }
-
-    return res.json();
 }

@@ -7,7 +7,7 @@ import json
 import warnings
 import glob as glob_module
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,34 +35,30 @@ MODEL_PATH = None
 DATASET_NAME = None
 TRACK_NAMES = {}
 
-class TrackItem(BaseModel):
+class Track(BaseModel):
     id: str
     name: str
+    rank: Optional[int] = None
+    score: Optional[float] = None
 
-class TrackRecommendation(BaseModel):
-    rank: int
-    id: str
-    name: str
-    score: float
-
-class RecommendRequest(BaseModel):
+class RecommendationsRequest(BaseModel):
     track_ids: list[int]
     k: int = 20
 
-class RecommendResponse(BaseModel):
+class RecommendationsResponse(BaseModel):
     input_track_ids: list[int]
-    recommendations: list[TrackRecommendation]
+    recommendations: list[Track]
 
-class TracksRequest(BaseModel):
+class TrackListRequest(BaseModel):
     offset: int = 0
     limit: int = 50
     search: str | None = None
 
-class TracksResponse(BaseModel):
+class TrackListResponse(BaseModel):
     total: int
     offset: int
     limit: int
-    tracks: list[TrackItem]
+    tracks: list[Track]
 
 class ModelRequest(BaseModel):
     model_path: str
@@ -75,7 +71,7 @@ class Metrics(BaseModel):
     results_1: dict
     results_N: dict
 
-class EpochData(BaseModel):
+class Epoch(BaseModel):
     epoch: int
     train_loss: float | None = None
     train_time: float | None = None
@@ -83,8 +79,8 @@ class EpochData(BaseModel):
     eval_time: float | None = None
     metrics: dict[str, float] = {}
 
-class ParsedLog(BaseModel):
-    epochs: list[EpochData]
+class TrainingLog(BaseModel):
+    epochs: list[Epoch]
 
 def load_model_names():
     return glob.glob("saved/**/*.pth", recursive=True)
@@ -152,14 +148,14 @@ def get_metrics():
         results_N=results_N
     )
 
-def _commit_epoch(epochs: list[EpochData], current: dict):
+def _commit_epoch(epochs: list[Epoch], current: dict):
     if current and current.get("metrics"):
-        epochs.append(EpochData(**current))
+        epochs.append(Epoch(**current))
 
-def parse_log_file(path: Path) -> list[EpochData]:
+def parse_log_file(path: Path) -> list[Epoch]:
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
-    epochs: list[EpochData] = []
+    epochs: list[Epoch] = []
     current: dict = {}
     for line in lines:
         train_m = re.search(r'epoch\s+(\d+)\s+training\s+\[time:\s*([\d.]+)s,\s*train loss:\s*([\d.]+)', line)
@@ -188,11 +184,11 @@ def parse_log_file(path: Path) -> list[EpochData]:
     _commit_epoch(epochs, current)
     return epochs
 
-@app.get("/log", response_model=ParsedLog)
+@app.get("/log", response_model=TrainingLog)
 def get_log():
     if not LOG_FILE or not LOG_FILE.exists():
         raise HTTPException(status_code=404, detail="Log file not found")
-    return ParsedLog(epochs=parse_log_file(LOG_FILE))
+    return TrainingLog(epochs=parse_log_file(LOG_FILE))
 
 @app.get("/models", response_model=List[str])
 def get_model():
@@ -210,25 +206,25 @@ def set_model(req: ModelRequest):
     )
 
 @app.get("/tracks")
-def get_tracks(req: TracksRequest = Depends()):
+def get_tracks(req: TrackListRequest = Depends()):
     if not TRACK_NAMES:
         raise HTTPException(404, "No tracks data")
     tracks = [
-        TrackItem(id=tid, name=name.replace("/_/", " - "))
+        Track(id=tid, name=name.replace("/_/", " - "))
         for tid, name in TRACK_NAMES.items()
     ]
     if req.search:
         req.search = req.search.lower()
         tracks = [t for t in tracks if req.search in t.name.lower()]
-    return TracksResponse(
+    return TrackListResponse(
         total=len(tracks),
         offset=req.offset,
         limit=req.limit,
         tracks=tracks[req.offset:req.offset + req.limit],
     )
 
-@app.post("/recommend", response_model=RecommendResponse)
-def recommend(req: RecommendRequest):
+@app.post("/recommend", response_model=RecommendationsResponse)
+def recommend(req: RecommendationsRequest):
     try:
         internal_ids = [dataset.token2id("item_id", str(t)) for t in req.track_ids]
     except Exception as e:
@@ -241,7 +237,7 @@ def recommend(req: RecommendRequest):
         scores = model.full_sort_predict(interaction)
     topk = torch.topk(scores, req.k, dim=1)
     recommendations = [
-        TrackRecommendation(
+        Track(
             rank=i + 1,
             id=dataset.id2token("item_id", idx.item()),
             name=TRACK_NAMES.get(dataset.id2token("item_id", idx.item()), "unknown").replace("/_/", " - "),
@@ -249,7 +245,7 @@ def recommend(req: RecommendRequest):
         )
         for i, (idx, score) in enumerate(zip(topk.indices[0], topk.values[0]))
     ]
-    return RecommendResponse(
+    return RecommendationsResponse(
         input_track_ids=req.track_ids,
         recommendations=recommendations,
     )
