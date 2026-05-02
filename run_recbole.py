@@ -69,6 +69,10 @@ dataset_dict = {p.name: p for p in dataset_dir.iterdir() if p.is_dir()}
 logger = getLogger()
 
 for dataset_name in dataset_dict.keys():
+    if os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
+        os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
+
+for dataset_name in dataset_dict.keys():
     if not os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
         shutil.copy(
             'recbole/properties/dataset/30music.yaml', 
@@ -80,6 +84,9 @@ for model_name in model_dict.keys():
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
             handler.close()
+
+        if os.path.exists(f"saved/{model_name}_{dataset_name}"):
+            continue
 
         try:
             config = Config(
@@ -135,6 +142,69 @@ for model_name in model_dict.keys():
             traceback.print_exc()
             torch.cuda.empty_cache()
             continue
+
+# dokręcanie śruby
+for model_name in model_dict.keys():
+    for dataset_name in dataset_dict.keys():
+        checkpoint_dir = f"saved/{model_name}_{dataset_name}"
+        if not os.path.exists(checkpoint_dir):
+            continue
+
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
+
+        try:
+            config = Config(
+                model=model_name,
+                dataset=dataset_name,
+                config_dict={
+                    **model_dict[model_name]['parameter_dict'],
+                    'checkpoint_dir': checkpoint_dir,
+                    'epochs': 30,
+                    'save_dataset': False
+                }
+            )
+
+            init_seed(config['seed'], config['reproducibility'])
+            init_logger(config)
+            if not logger.handlers:
+                logger.addHandler(logging.StreamHandler())
+
+            dataset = create_dataset(config)
+            train_data, valid_data, test_data = data_preparation(config, dataset)
+            model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
+
+            trainer = Trainer(config, model)
+            
+            checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
+            latest = max(checkpoints, key=os.path.getmtime)
+            trainer.resume_checkpoint(latest)
+
+            best_valid_score, best_valid_result = trainer.fit(
+                train_data, valid_data, saved=True, show_progress=True
+            )
+            test_result = trainer.evaluate(test_data)
+
+            with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
+                json.dump({"test_result": test_result}, f, indent=2)
+
+            evaluate_playlist(
+                config=config,
+                model=model,
+                dataset=dataset,
+                train_data=train_data,
+                test_data=test_data
+            )
+
+            del model, trainer, dataset, train_data, valid_data, test_data
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        except Exception as e:
+            logger.error(f"Finetune failed {model_name} on {dataset_name}: {e}")
+            traceback.print_exc()
+
 
 for dataset_name in dataset_dict.keys():
     os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
