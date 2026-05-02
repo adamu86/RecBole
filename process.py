@@ -113,7 +113,7 @@ def initialize():
                     # "pr": st.get("playratio"),
                     # "ac": st.get("action")
                 }
-                for st in session_objects["objects"][-(MAX_SESSION_RECENT_TRACKS + 1):-1]
+                for st in session_objects["objects"]
             ]
 
             if not (MIN_SESSION_PLAYTIME <= session_playtime <= MAX_SESSION_PLAYTIME):

@@ -41,7 +41,7 @@ class TrackItem(BaseModel):
 
 class TrackRecommendation(BaseModel):
     rank: int
-    track_id: str
+    id: str
     name: str
     score: float
 
@@ -243,7 +243,7 @@ def recommend(req: RecommendRequest):
     recommendations = [
         TrackRecommendation(
             rank=i + 1,
-            track_id=dataset.id2token("item_id", idx.item()),
+            id=dataset.id2token("item_id", idx.item()),
             name=TRACK_NAMES.get(dataset.id2token("item_id", idx.item()), "unknown").replace("/_/", " - "),
             score=round(score.item(), 6),
         )

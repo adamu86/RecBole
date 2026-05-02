@@ -5,7 +5,7 @@ export interface TrackItem {
 
 export interface TrackRecommendation {
     rank: number;
-    track_id: string;
+    id: string;
     name: string;
     score: number;
 }
