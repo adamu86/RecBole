@@ -344,8 +344,8 @@ onMounted(init);
     </h2>
     <div class="column">
       <h2 class="column-title">Available tracks</h2>
-      <ul>
-        <li v-if="availableTracks.items.length === 0" class="p-2 text-gray-400">
+      <TransitionGroup name="fade" tag="ul">
+        <li v-if="availableTracks.items.length === 0" class="p-2 text-gray-400" key="empty">
           No songs available
         </li>
         <li
@@ -360,14 +360,15 @@ onMounted(init);
             <div class="breadcrumb">ID: {{ track.id }}</div>
           </div>
         </li>
-      </ul>
+      </TransitionGroup>
     </div>
     <div class="column">
       <h2 class="column-title">Listening history</h2>
-      <ul>
+      <TransitionGroup name="fade" tag="ul">
         <li
           v-if="listeningHistory.items.length === 0"
           class="p-2 text-gray-400"
+          key="empty"
         >
           No songs added yet
         </li>
@@ -384,12 +385,12 @@ onMounted(init);
           </div>
           {{ track.name }}
         </li>
-      </ul>
+      </TransitionGroup>
     </div>
     <div class="column">
       <h2 class="column-title">Current recommendations</h2>
-      <ul>
-        <li v-if="recommendations.items.length === 0" class="p-2 text-gray-400">
+      <TransitionGroup name="fade" tag="ul">
+        <li v-if="recommendations.items.length === 0" class="p-2 text-gray-400" key="empty">
           No recommendations yet
         </li>
         <li
@@ -418,7 +419,7 @@ onMounted(init);
             {{ recommendation.name }}
           </span>
         </li>
-      </ul>
+      </TransitionGroup>
     </div>
     <div class="flex gap-[3rem]">
       <div class="grid grid-cols-[min-content_3rem_min-content]">
