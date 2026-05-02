@@ -61,9 +61,11 @@ const availableTracks = reactive({
     }
   },
 });
-watch(() => availableTracks.page.current, () => {
+watch(
+  () => availableTracks.page.current,
+  () => {
     availableTracks.fetch();
-  }
+  },
 );
 const search = () => {
   availableTracks.page.reset();
@@ -113,13 +115,17 @@ const recommendations = reactive({
     }
   },
 });
-watch(() => listeningHistory.items.length, () => {
+watch(
+  () => listeningHistory.items.length,
+  () => {
     if (recommendations.autoContinue.value && !recommendations.autoPlay.value) {
       recommendations.fetch();
     }
   },
 );
-watch(() => recommendations.autoPlay.value, async (isActive) => {
+watch(
+  () => recommendations.autoPlay.value,
+  async (isActive) => {
     if (!isActive) return;
     while (recommendations.autoPlay.value) {
       await recommendations.fetch();
@@ -161,7 +167,9 @@ const models = reactive({
     }
   },
 });
-watch(() => models.current, async (newModelPath, oldModelPath) => {
+watch(
+  () => models.current,
+  async (newModelPath, oldModelPath) => {
     if (!newModelPath || !oldModelPath) return;
     showLog.value = false;
     showMetricsTable.value = false;
@@ -186,7 +194,9 @@ const loadAll = async () => {
 
 const init = async () => {
   const status = await fetchStatus();
-  Object.entries(status).forEach(([key, value]) => console.log(`${key}: ${value}`));
+  Object.entries(status).forEach(([key, value]) =>
+    console.log(`${key}: ${value}`),
+  );
   models.current = status.model;
   await loadAll();
 };
