@@ -90,7 +90,8 @@ def load_model(model_path=load_model_names()[0]):
     global config, model, dataset, train_data, valid_data, test_data, LOG_FILE
     files_before = set(Path("log").glob(f"**/*.log"))
     config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
-        model_file=model_path
+        model_file=model_path,
+        config_dict={"device": "cpu"}
     )
     log_dir = Path("log") / config['model']
     escaped_prefix = glob_module.escape(str(log_dir / f"{config['model']}-{config['dataset']}-"))
