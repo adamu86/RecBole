@@ -8,14 +8,9 @@ import {
   fetchMetrics,
 } from "./service";
 import {
-  CHART_COLORS,
-  chartCanvas,
   buildChart,
   toggleChart,
-  toggleMetric,
   toggleMetricsTable,
-  metricKeys,
-  selectedMetrics,
   currentLog,
   showLog,
   loadLog,
@@ -23,7 +18,15 @@ import {
   showMetricsTable,
   getMetrics,
 } from "./chart";
-import { onMounted, watch, reactive } from "vue";
+import TrainingLog from "./components/TrainingLog.vue";
+import MetricsTable from "./components/MetricsTable.vue";
+import Select from "./components/Select.vue";
+import Input from "./components/Input.vue";
+import Button from "./components/Button.vue";
+import AvailableTracksColumn from "./components/ColumnAvailableTracks.vue";
+import ListeningHistoryColumn from "./components/ColumnListeningHistory.vue";
+import RecommendationsColumn from "./components/ColumnRecommendations.vue";
+import { onMounted, watch, reactive, computed } from "vue";
 
 const availableTracks = reactive({
   searchQuery: "Avicii",
@@ -174,11 +177,18 @@ watch(
     recommendations.autoContinue.value = false;
     recommendations.autoPlay.value = false;
     await models.setNewModel(newModelPath);
-    await loadAll();
+    await load();
   },
 );
 
-const loadAll = async () => {
+const modelOptions = computed(() =>
+  models.items.map((model) => ({
+    value: model,
+    label: `${model.split("/")[1]?.split("_")[0]} : ${model.split("/")[1]?.split("__")[1]?.split("_")[0]}`,
+  })),
+);
+
+const load = async () => {
   await models.fetch();
   await availableTracks.fetch();
   await getMetrics();
@@ -192,279 +202,106 @@ const init = async () => {
     console.log(`${key}: ${value}`),
   );
   models.current = status.model;
-  await loadAll();
+  await load();
+};
+
+const scaleOnHover = (isActive: boolean) => {
+  return isActive ? "scale-115" : "hover:scale-115 text-gray-500";
 };
 
 onMounted(init);
 </script>
 
 <template>
-  <main
-    class="grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-2 p-4 h-screen overflow-hidden"
-    :class="models.isFetching ? 'pointer-events-none opacity-50' : ''"
-  >
-    <h2 class="col-span-3 mb-2 flex flex-row justify-between">
+  <main :class="models.isFetching ? 'pointer-events-none opacity-50' : ''">
+    <h2 class="header">
       <span class="text-3xl font-bold"> Music Recommender </span>
-      <div v-if="models.items.length > 0" class="flex items-center">
+      <div v-if="models.items.length > 0" class="flex items-center gap-2">
         <Transition name="fade" mode="out-in">
           <Icon
             v-if="models.isFetching"
             icon="fa-solid fa-spinner"
             class="animate-spin"
           />
-          <div v-else class="flex gap-1 items-center">
+          <div v-else class="flex gap-2 items-center">
             <div class="relative">
               <Icon
                 icon="fa-solid fa-chart-column"
-                class="cursor-pointer transition-all"
-                :class="showLog ? 'scale-115' : 'hover:scale-115 text-gray-500'"
+                :class="scaleOnHover(showLog)"
                 @click="toggleChart"
               />
               <Transition name="slide-fade-top">
-                <div
-                  v-if="currentLog.epochs.length"
-                  v-show="showLog"
-                  class="absolute right-0 top-full z-50 bg-white shadow-lg rounded-sm w-[50vw]"
-                >
-                  <h2 class="column-title">Training log chart</h2>
-                  <div class="flex gap-1 mb-6 overflow-x-auto p-2">
-                    <button
-                      v-for="(metric, i) in metricKeys"
-                      :key="metric"
-                      @click="toggleMetric(metric)"
-                      class="text-sm mb-2"
-                      :style="
-                        selectedMetrics.includes(metric)
-                          ? {
-                              backgroundColor:
-                                CHART_COLORS[i % CHART_COLORS.length] + '22',
-                              borderColor:
-                                CHART_COLORS[i % CHART_COLORS.length],
-                              color: CHART_COLORS[i % CHART_COLORS.length],
-                            }
-                          : {
-                              backgroundColor: '#f1f5f9',
-                              borderColor: '#cbd5e1',
-                              color: '#94a3b8',
-                            }
-                      "
-                    >
-                      {{ metric }}
-                    </button>
-                  </div>
-                  <div style="height: 50vh">
-                    <canvas ref="chartCanvas"></canvas>
-                  </div>
-                </div>
+                <TrainingLog v-if="currentLog.epochs.length" v-show="showLog" />
               </Transition>
             </div>
             <div class="relative">
               <Icon
                 icon="fa-solid fa-table"
-                class="cursor-pointer transition-all"
-                :class="
-                  showMetricsTable
-                    ? 'scale-115'
-                    : 'hover:scale-115 text-gray-500'
-                "
+                :class="scaleOnHover(showMetricsTable)"
                 @click="toggleMetricsTable"
               />
               <Transition name="slide-fade-top">
-                <div
+                <MetricsTable
                   v-if="currentMetricsTable"
                   v-show="showMetricsTable"
-                  class="text-nowrap absolute right-0 top-full max-h-[75vh] shadow-lg overflow-x-hidden z-10 text-black grid gap-x-1 rounded-b-sm bg-gray-300 border border-gray-300"
-                >
-                  <div
-                    class="bg-white col-span-2 sticky top-0 grid grid-cols-2 gap-x-1"
-                  >
-                    <h2 class="column-title">Eval. test results (1 GT)</h2>
-                    <h2 class="column-title">Eval. test results (N GT)</h2>
-                  </div>
-                  <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
-                    <template
-                      v-for="(val, metric) in Object.values(
-                        currentMetricsTable.results_1,
-                      )[0] ?? {}"
-                      :key="metric"
-                    >
-                      <div class="text-right px-2 py-1">
-                        {{ metric.split("@")[0] }}
-                      </div>
-                      <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
-                        @{{ metric.split("@")[1] }}
-                      </div>
-                      <div class="px-2 py-1 font-medium text-left">
-                        {{ val.toFixed(3) }}
-                      </div>
-                    </template>
-                  </div>
-                  <div class="column bg-white grid grid-cols-[1fr_auto_auto]">
-                    <template
-                      v-for="(val, metric) in Object.values(
-                        currentMetricsTable.results_N,
-                      )[0] ?? {}"
-                      :key="metric"
-                    >
-                      <div class="text-right px-2 py-1">
-                        {{ metric.split("@")[0] }}
-                      </div>
-                      <div class="px-2 py-1 border-x-[1px] border-x-gray-300">
-                        @{{ metric.split("@")[1] }}
-                      </div>
-                      <div class="px-2 py-1 font-medium text-left">
-                        {{ val.toFixed(3) }}
-                      </div>
-                    </template>
-                  </div>
-                </div>
+                  :metrics="currentMetricsTable"
+                />
               </Transition>
             </div>
           </div>
         </Transition>
-        <select
+        <Select
+          v-model="models.current"
+          :options="modelOptions"
           :disabled="models.isFetching"
-          class="cursor-pointer"
-          @change="
-            (e) => (models.current = (e.target as HTMLSelectElement).value)
-          "
-        >
-          <option
-            v-for="model in models.items"
-            :key="model"
-            :selected="model === models.current"
-            :value="model"
-          >
-            {{ model.split("/")[1]?.split("_")[0] }} :
-            {{ model.split("/")[1]?.split("__")[1]?.split("_")[0] }}
-          </option>
-        </select>
+        />
       </div>
     </h2>
-    <div class="column">
-      <h2 class="column-title">Available tracks</h2>
-      <TransitionGroup name="fade" tag="ul">
-        <li
-          v-if="availableTracks.items.length === 0"
-          class="p-2 text-gray-400"
-          key="empty"
-        >
-          No songs available
-        </li>
-        <li
-          v-else
-          v-for="track in availableTracks.items"
-          @click="listeningHistory.addTrack(track)"
-          :key="track.id"
-          class="group track"
-        >
-          {{ track.name }}
-          <div class="breadcrumb-group">
-            <div class="breadcrumb">ID: {{ track.id }}</div>
-          </div>
-        </li>
-      </TransitionGroup>
-    </div>
-    <div class="column">
-      <h2 class="column-title">Listening history</h2>
-      <TransitionGroup name="fade" tag="ul">
-        <li
-          v-if="listeningHistory.items.length === 0"
-          class="p-2 text-gray-400"
-          key="empty"
-        >
-          No songs added yet
-        </li>
-        <li
-          v-else
-          v-for="(track, idx) in listeningHistory.items"
-          :key="track.name"
-          @click="listeningHistory.removeTrack(idx)"
-          class="group track"
-        >
-          <span class="rank">{{ idx + 1 }}</span>
-          <div class="breadcrumb-group">
-            <div class="breadcrumb">ID: {{ track.id }}</div>
-          </div>
-          {{ track.name }}
-        </li>
-      </TransitionGroup>
-    </div>
-    <div class="column">
-      <h2 class="column-title">Current recommendations</h2>
-      <TransitionGroup name="fade" tag="ul">
-        <li
-          v-if="recommendations.items.length === 0"
-          class="p-2 text-gray-400"
-          key="empty"
-        >
-          No recommendations yet
-        </li>
-        <li
-          v-else
-          v-for="recommendation in recommendations.items"
-          :key="recommendation.id"
-          @click="listeningHistory.addTrack(recommendation)"
-          class="group track"
-        >
-          <span class="rank">
-            {{ recommendation.rank }}
-          </span>
-          <div class="breadcrumb-group">
-            <div class="breadcrumb">ID: {{ recommendation.id }}</div>
-            <div class="breadcrumb">
-              Score: {{ recommendation.score?.toFixed(2) }}
-            </div>
-          </div>
-          <span
-            :class="
-              listeningHistory.items.some((t) => t.id === recommendation.id)
-                ? 'opacity-25'
-                : ''
-            "
-          >
-            {{ recommendation.name }}
-          </span>
-        </li>
-      </TransitionGroup>
-    </div>
-    <div class="flex gap-[3rem]">
+    <AvailableTracksColumn
+      :tracks="availableTracks.items"
+      @add="listeningHistory.addTrack($event)"
+    />
+    <ListeningHistoryColumn
+      :tracks="listeningHistory.items"
+      @remove="listeningHistory.removeTrack($event)"
+    />
+    <RecommendationsColumn
+      :recommendations="recommendations.items"
+      :history="listeningHistory.items"
+      @add="listeningHistory.addTrack($event)"
+    />
+    <div class="flex gap-2">
       <div class="grid grid-cols-[min-content_3rem_min-content]">
-        <button @click="availableTracks.page.prev()">
+        <Button @click="availableTracks.page.prev()">
           <Icon icon="fa-solid fa-chevron-left" />
-        </button>
+        </Button>
         <span class="m-auto">{{ availableTracks.page.current }}</span>
-        <button @click="availableTracks.page.next()">
+        <Button @click="availableTracks.page.next()">
           <Icon icon="fa-solid fa-chevron-right" />
-        </button>
+        </Button>
       </div>
-      <form class="flex flex-row gap-2 w-full">
-        <input
-          type="text"
-          v-model="availableTracks.searchQuery"
-          placeholder="Search..."
-        />
-        <button
-          type="submit"
+      <div class="flex gap-2 w-1/2 ml-auto">
+        <Input v-model="availableTracks.searchQuery" placeholder="Search..." />
+        <Button
           :disabled="availableTracks.isFetching"
           @click.prevent="search()"
         >
           <Icon icon="fa-solid fa-search" />
-        </button>
-      </form>
+        </Button>
+      </div>
     </div>
-    <div class="flex justify-end gap-2">
-      <!-- <button @click="selectedTracks.splice(0, selectedTracks.length)">
+    <div class="flex gap-2">
+      <!-- <Button @click="selectedTracks.splice(0, selectedTracks.length)">
         <Icon icon="fa-solid fa-eraser" />
-      </button> -->
+      </Button> -->
     </div>
-    <form class="flex gap-2">
-      <input v-model="recommendations.topk" placeholder="K..." />
-      <button type="submit" @click.prevent="recommendations.fetch()">
+    <div class="flex gap-2">
+      <Input v-model="recommendations.topk" placeholder="K..." />
+      <Button @click.prevent="recommendations.fetch()">
         <Icon icon="fa-solid fa-thumbs-up" />
-      </button>
-      <input v-model="recommendations.interval" placeholder="Interval (s)..." />
-      <button @click.prevent="recommendations.autoPlay.toggle()">
+      </Button>
+      <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
+      <Button @click.prevent="recommendations.autoPlay.toggle()">
         <Icon
           :icon="
             recommendations.autoPlay.value
@@ -472,8 +309,8 @@ onMounted(init);
               : 'fa-solid fa-play'
           "
         />
-      </button>
-      <button
+      </Button>
+      <Button
         @click.prevent="recommendations.autoContinue.toggle()"
         :disabled="recommendations.autoPlay.value"
         :class="recommendations.autoPlay.value ? 'cursor-not-allowed' : ''"
@@ -485,7 +322,7 @@ onMounted(init);
               : 'fa-solid fa-rotate-left'
           "
         />
-      </button>
-    </form>
+      </Button>
+    </div>
   </main>
 </template>

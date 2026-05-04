@@ -14,32 +14,47 @@
 }
 
 html {
+  font-family: 'Rubik', sans-serif;
   @apply
   text-gray-800
 }
 
-body {
-  font-family: 'Rubik', sans-serif;
-}
-
 main {
   @apply
-  transition-all
+  grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-2 p-4 h-screen overflow-hidden
 }
 
-button,
-li {
+.header {
+  @apply col-span-3 mb-2 flex flex-row justify-between
+}
+
+.app-button {
+  @apply aspect-square h-10 p-2 rounded-base bg-primary hover:bg-primary-hover text-white cursor-pointer;
   transition: background-color 0.1s ease-in-out;
 }
 
-button {
-  @apply
-  aspect-square h-10 p-2 rounded-base bg-primary hover:bg-primary-hover text-white cursor-pointer
+.app-button:disabled {
+  @apply opacity-50 cursor-not-allowed hover:bg-primary;
 }
 
-input {
-  @apply
-  p-2 h-10 rounded-base outline-none w-full bg-input/10 focus:ring-1 focus:ring-primary focus:inset-ring-3 focus:inset-ring-primary transition-all
+.app-input {
+  @apply p-2 h-10 rounded-base outline-none w-full bg-input/10 border-b-5 pt-3 border-transparent focus:border-primary transition-all;
+}
+
+.app-select {
+  @apply p-2 h-10 rounded-base outline-none bg-input/10 focus:ring-1 focus:ring-primary focus:inset-ring-3 focus:inset-ring-primary transition-all cursor-pointer;
+}
+
+.app-select:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+svg {
+  @apply cursor-pointer transition-all;
+}
+
+li {
+  transition: background-color 0.1s ease-in-out;
 }
 
 ul {
