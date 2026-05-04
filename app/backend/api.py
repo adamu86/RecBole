@@ -88,6 +88,7 @@ def load_model_names():
 
 def load_model(model_path=load_model_names()[0]):
     global config, model, dataset, train_data, valid_data, test_data, LOG_FILE
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
     files_before = set(Path("log").glob(f"**/*.log"))
     config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
         model_file=model_path,
