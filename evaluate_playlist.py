@@ -131,7 +131,8 @@ def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, 
             # tworzymy obiekt interakcji
             interaction = Interaction({
                 'item_id_list': context_tensor.unsqueeze(0).to(device),
-                'item_length': torch.tensor([len(session_context)]).to(device)
+                'item_length': torch.tensor([len(session_context)]).to(device),
+                dataset.uid_field: torch.tensor([session_id]).to(device)
             })
 
             # generujemy predykcje dla każdego utworu i wybieramy max_k najbardziej prawdopodobnych

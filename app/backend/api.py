@@ -229,9 +229,14 @@ def recommend(req: RecommendationsRequest):
         internal_ids = [dataset.token2id("item_id", str(t)) for t in req.track_ids]
     except Exception as e:
         raise HTTPException(400, f"Bad track IDs: {e}")
+    # interaction = Interaction({
+    #     "item_id_list": torch.tensor([internal_ids]),
+    #     "item_length": torch.tensor([len(internal_ids)]),
+    # })
     interaction = Interaction({
-        "item_id_list": torch.tensor([internal_ids]),
-        "item_length": torch.tensor([len(internal_ids)]),
+        'item_id_list': torch.tensor([internal_ids]),
+        'item_length': torch.tensor([len(internal_ids)]),
+        dataset.uid_field: torch.tensor([0])
     })
     with torch.no_grad():
         scores = model.full_sort_predict(interaction)
