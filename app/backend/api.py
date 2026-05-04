@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 _original_torch_load = torch.load
 def _patched_torch_load(*args, **kwargs):
     kwargs['weights_only'] = False
+    kwargs.setdefault('map_location', torch.device('cpu'))
     return _original_torch_load(*args, **kwargs)
 torch.load = _patched_torch_load
 
