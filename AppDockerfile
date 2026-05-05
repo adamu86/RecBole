@@ -1,0 +1,32 @@
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl git ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir numpy==1.24.4
+RUN pip install --no-cache-dir \
+    "git+https://github.com/adamu86/RecBole.git@workdir" \
+    fastapi uvicorn pandas
+
+RUN sed -i 's/\.to(config\["device"\])/.to("cpu")/g' \
+    /usr/local/lib/python3.10/site-packages/recbole/quick_start/quick_start.py
+
+# COPY app/ /workspace/app/
+# COPY dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY log/GRU4Rec/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/log/GRU4Rec/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY log/NARM/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/log/NARM/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY log/STAMP/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/log/STAMP/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+# COPY saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/ /workspace/saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]/
+
+WORKDIR /workspace
+
+CMD ["bash", "-c", "cd /workspace && python -m app.backend.api & cd /workspace/app/frontend && npm install && npm run dev -- --host 0.0.0.0 & wait"]

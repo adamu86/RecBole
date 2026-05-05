@@ -1,0 +1,36 @@
+services:
+  music-recommender-app:
+    image: music-recommender-app
+    build:
+      context: .
+      dockerfile: AppDockerfile
+
+    container_name: music-recommender-app
+    ports:
+      - "8001:8001"
+      - "5173:5173"
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./app:/workspace/app
+
+      - "./dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
+
+      - "./log/GRU4Rec:/workspace/log/GRU4Rec"
+      - "./log/NARM:/workspace/log/NARM"
+      - "./log/STAMP:/workspace/log/STAMP"
+
+      - "./saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
+      - "./saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
+      - "./saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
+
+
+
+# docker compose build --no-cache
+# docker compose up -d
+# docker compose exec music-recommender-app bash
+# docker compose down
+
+# docker save music-recommender-app -o music-recommender-app.tar
+# docker load -i music-recommender-app.tar
+# docker run -d -p 8001:8001 -p 5173:5173 music-recommender-app
