@@ -216,18 +216,18 @@ onMounted(init);
   <main :class="models.isFetching ? 'pointer-events-none opacity-50' : ''">
     <h2 class="header">
       <span class="text-3xl font-bold"> Music Recommender </span>
-      <div v-if="models.items.length > 0" class="flex items-center gap-2">
+      <div v-if="models.items.length > 0" class="flex items-center gap-1.5">
         <Transition name="fade" mode="out-in">
           <Icon
             v-if="models.isFetching"
             icon="fa-solid fa-spinner"
             class="animate-spin"
           />
-          <div v-else class="flex gap-2 items-center">
+          <div v-else class="flex gap-1.5 items-center">
             <div class="relative">
               <Icon
                 icon="fa-solid fa-chart-column"
-                :class="scaleOnHover(showLog)"
+                :class="['text-lg', scaleOnHover(showLog)]"
                 @click="toggleChart"
               />
               <Transition name="slide-fade-top">
@@ -237,7 +237,7 @@ onMounted(init);
             <div class="relative">
               <Icon
                 icon="fa-solid fa-table"
-                :class="scaleOnHover(showMetricsTable)"
+                :class="['text-lg', scaleOnHover(showMetricsTable)]"
                 @click="toggleMetricsTable"
               />
               <Transition name="slide-fade-top">
@@ -318,8 +318,8 @@ onMounted(init);
         <Icon
           :icon="
             recommendations.autoContinue.value
-              ? 'fa-solid fa-clock-rotate-left'
-              : 'fa-solid fa-rotate-left'
+              ? 'fa-solid fa-repeat'
+              : 'fa-solid fa-hand-pointer'
           "
         />
       </Button>

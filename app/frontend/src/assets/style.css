@@ -29,7 +29,7 @@ main {
 }
 
 .app-button {
-  @apply aspect-square h-10 p-2 rounded-base bg-primary hover:bg-primary-hover text-white cursor-pointer;
+  @apply aspect-square h-10 p-2 flex items-center justify-center rounded-base bg-primary hover:bg-primary-hover text-white cursor-pointer;
   transition: background-color 0.1s ease-in-out;
 }
 
@@ -50,7 +50,7 @@ main {
 }
 
 svg {
-  @apply cursor-pointer transition-all;
+  @apply cursor-pointer transition-all text-lg w-min!;
 }
 
 li {

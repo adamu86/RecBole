@@ -100,7 +100,10 @@ def load_model(model_path=load_model_names()[0]):
     for f in new_files:
         f.unlink()
     LOG_FILE = max(old_files, key=lambda x: x.stat().st_mtime) if old_files else None
-    model = model.to("cpu").eval()
+    config['device'] = 'cpu'
+    model = model.to("cpu")
+    model.device = torch.device("cpu")
+    model.eval()
     return config, model, dataset, train_data, valid_data, test_data, model_path
 
 def load_dataset(config):
