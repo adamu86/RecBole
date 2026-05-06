@@ -25,7 +25,7 @@ main {
 }
 
 .header {
-  @apply col-span-3 mb-2 flex flex-row justify-between
+  @apply col-span-3 flex flex-row justify-between
 }
 
 .app-button {

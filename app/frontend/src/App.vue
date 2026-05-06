@@ -215,7 +215,10 @@ onMounted(init);
 <template>
   <main :class="models.isFetching ? 'pointer-events-none opacity-50' : ''">
     <h2 class="header">
-      <span class="text-3xl font-bold"> Music Recommender </span>
+      <span class="text-3xl font-bold italic flex gap-1.5">
+        <span class="">MusicRec</span>
+        <Icon icon="fa-solid fa-music" class="mb-auto -skew-x-3 rotate-12"/>
+      </span>
       <div v-if="models.items.length > 0" class="flex items-center gap-1.5">
         <Transition name="fade" mode="out-in">
           <Icon
