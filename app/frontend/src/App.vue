@@ -26,7 +26,7 @@ import Button from "./components/Button.vue";
 import AvailableTracksColumn from "./components/ColumnAvailableTracks.vue";
 import ListeningHistoryColumn from "./components/ColumnListeningHistory.vue";
 import RecommendationsColumn from "./components/ColumnRecommendations.vue";
-import { onMounted, watch, reactive, computed } from "vue";
+import { onMounted, onUnmounted, watch, reactive, computed } from "vue";
 
 const availableTracks = reactive({
   searchQuery: "Avicii",
@@ -209,44 +209,63 @@ const init = async () => {
   await load();
 };
 
-const scaleOnHover = (isActive: boolean) => {
-  return isActive ? "scale-115" : "hover:scale-115 text-gray-500";
+const reloadPage = () => {
+  window.location.reload();
 };
 
-onMounted(init);
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.ctrlKey && e.key === "f") {
+    e.preventDefault();
+    document.getElementById("searchInput")?.focus();
+  } else if (
+    e.key === "Enter" &&
+    document.activeElement?.id === "searchInput"
+  ) {
+    search();
+  } else if (e.key === "Enter") {
+    recommendations.fetch();
+  }
+};
+
+onMounted(() => {
+  init();
+  window.addEventListener("keydown", handleKeyDown);
+  document
+    .getElementById("searchInput")
+    ?.addEventListener("keydown", handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
+  document
+    .getElementById("searchInput")
+    ?.removeEventListener("keydown", handleKeyDown);
+});
 </script>
 
 <template>
   <main :class="models.isFetching ? 'pointer-events-none opacity-50' : ''">
     <h2 class="header">
-      <span class="text-3xl font-bold italic flex gap-1.5">
+      <span class="text-3xl font-bold italic flex gap-1.5" @click="reloadPage">
         <span class="">MusicRec</span>
         <Icon icon="fa-solid fa-music" class="mb-auto -skew-x-3 rotate-12" />
       </span>
-      <div v-if="models.items.length > 0" class="flex items-center gap-1.5">
+      <div v-if="models.items.length > 0" class="flex items-center gap-2">
         <Transition name="fade" mode="out-in">
-          <Icon
+          <Button
             v-if="models.isFetching"
-            icon="fa-solid fa-spinner"
-            class="animate-spin"
+            icon="spinner"
+            class="animate-spin! [&>button]:bg-transparent! [&>button>svg]:text-gray-500!"
           />
-          <div v-else class="flex gap-1.5 items-center">
+          <div v-else class="flex gap-2 items-center">
             <div class="relative">
-              <Icon
-                icon="fa-solid fa-chart-column"
-                :class="['text-lg', scaleOnHover(showLog)]"
-                @click="toggleChart"
-              />
+              <Button @click="toggleChart" icon="chart-column" />
               <Transition name="slide-fade-top">
                 <TrainingLog v-if="currentLog.epochs.length" v-show="showLog" />
               </Transition>
             </div>
             <div class="relative">
-              <Icon
-                icon="fa-solid fa-table"
-                :class="['text-lg', scaleOnHover(showMetricsTable)]"
-                @click="toggleMetricsTable"
-              />
+              <Button @click="toggleMetricsTable" icon="table" />
               <Transition name="slide-fade-top">
                 <MetricsTable
                   v-if="currentMetricsTable"
@@ -279,28 +298,37 @@ onMounted(init);
     />
     <div class="flex gap-2">
       <div class="grid grid-cols-[min-content_3rem_min-content]">
-        <Button @click="availableTracks.page.prev()">
-          <Icon icon="fa-solid fa-chevron-left" />
-        </Button>
+        <Button
+          @click="availableTracks.page.prev()"
+          info="Previous page"
+          icon="chevron-left"
+        />
         <span class="m-auto">{{ availableTracks.page.current }}</span>
-        <Button @click="availableTracks.page.next()">
-          <Icon icon="fa-solid fa-chevron-right" />
-        </Button>
+        <Button
+          @click="availableTracks.page.next()"
+          info="Next page"
+          icon="chevron-right"
+        />
       </div>
       <div class="flex gap-2 w-1/2 ml-auto">
-        <Input v-model="availableTracks.searchQuery" placeholder="Search..." />
+        <Input
+          id="searchInput"
+          v-model="availableTracks.searchQuery"
+          placeholder="Search..."
+        />
         <Button
           :disabled="availableTracks.isFetching"
           @click.prevent="search()"
-        >
-          <Icon icon="fa-solid fa-search" />
-        </Button>
+          info="Search"
+          icon="search"
+        />
       </div>
     </div>
     <div class="flex gap-2">
-      <!-- <Button @click="selectedTracks.splice(0, selectedTracks.length)">
-        <Icon icon="fa-solid fa-eraser" />
-      </Button> -->
+      <!-- <Button
+        @click="listeningHistory.items.splice(0, listeningHistory.items.length)"
+        icon="eraser"
+      /> -->
     </div>
     <div class="flex gap-2">
       <Input v-model="recommendations.topk" placeholder="K..." />
@@ -308,25 +336,24 @@ onMounted(init);
         @click.prevent="recommendations.fetch()"
         :disabled="
           listeningHistory.items.length === 0 ||
-          recommendations.autoContinue.value ||
+          (recommendations.autoContinue.value &&
+            recommendations.items.length !== 0) ||
           recommendations.autoPlay.value
         "
-      >
-        <Icon icon="fa-solid fa-thumbs-up" />
-      </Button>
+        info="Recommend"
+        icon="thumbs-up"
+      />
       <Button
         @click.prevent="recommendations.autoContinue.toggle()"
         :disabled="recommendations.autoPlay.value"
         :class="recommendations.autoPlay.value ? 'cursor-not-allowed' : ''"
-      >
-        <Icon
-          :icon="
-            recommendations.autoContinue.value
-              ? 'fa-solid fa-repeat'
-              : 'fa-solid fa-hand-pointer'
-          "
-        />
-      </Button>
+        :info="
+          recommendations.autoContinue.value
+            ? 'Auto-continue mode'
+            : 'Manual mode'
+        "
+        :icon="recommendations.autoContinue.value ? 'repeat' : 'hand-pointer'"
+      />
       <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
       <Button
         @click.prevent="recommendations.autoPlay.toggle()"
@@ -334,15 +361,13 @@ onMounted(init);
           listeningHistory.items.length === 0 ||
           recommendations.autoContinue.value
         "
-      >
-        <Icon
-          :icon="
-            recommendations.autoPlay.value
-              ? 'fa-solid fa-stop'
-              : 'fa-solid fa-play'
-          "
-        />
-      </Button>
+        :info="
+          recommendations.autoPlay.value
+            ? 'Auto-play is ON'
+            : 'Auto-play is OFF'
+        "
+        :icon="recommendations.autoPlay.value ? 'stop' : 'play'"
+      />
     </div>
   </main>
 </template>

@@ -25,7 +25,7 @@ main {
 }
 
 .header {
-  @apply col-span-3 flex flex-row justify-between
+  @apply col-span-3 flex flex-row justify-between cursor-pointer
 }
 
 .app-button {
@@ -38,7 +38,7 @@ main {
 }
 
 .app-input {
-  @apply p-2 h-10 rounded-base outline-none w-full bg-input/10 border-b-5 pt-3 border-transparent focus:border-primary transition-all;
+  @apply p-2 h-10 ring-1 ring-input/20 rounded-base outline-none w-full bg-input/5 border-b-5 pt-3 border-transparent focus:border-primary transition-all;
 }
 
 .app-select {
@@ -89,7 +89,7 @@ ul {
 
 .column-title {
   @apply
-  p-2 text-xl font-semibold bg-secondary/20 rounded-t-base select-none
+  p-2 text-xl font-semibold bg-secondary/20 rounded-t-base select-none h-10
 }
 
 .fade-enter-active {

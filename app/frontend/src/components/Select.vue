@@ -55,7 +55,7 @@ onUnmounted(() => {
 <template>
   <div class="relative w-max" ref="selectRef">
     <div
-      class="border-b-5 border-transparent transition-all pt-3 h-10 rounded p-2 bg-input/5 flex items-center justify-between cursor-pointer select-none"
+      class="ring-1 ring-input/20 border-b-5 border-transparent transition-all pt-3 h-10 rounded p-2 bg-input/5 flex items-center justify-between cursor-pointer select-none"
       :class="{ 'border-primary!': isOpen }"
       @click="toggle"
     >
@@ -65,7 +65,7 @@ onUnmounted(() => {
       </div>
       <Icon
         icon="fa-solid fa-chevron-down"
-        class="ml-2 text-gray-500 text-sm"
+        class="ml-2 text-sm! text-gray-500 text-sm"
         :class="{ '-rotate-x-180': isOpen }"
       />
     </div>
@@ -73,7 +73,7 @@ onUnmounted(() => {
     <Transition name="slide-fade-top">
       <div
         v-if="isOpen"
-        class="absolute z-50 w-full p-1 mt-1 bg-white border border-gray-200 rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
+        class="ring-1 ring-input/20 absolute z-50 w-full p-1 mt-1 bg-white rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
       >
         <div
           v-for="option in options"
