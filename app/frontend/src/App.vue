@@ -116,7 +116,11 @@ const recommendations = reactive({
 watch(
   () => listeningHistory.items.length,
   () => {
-    if (recommendations.autoContinue.value && !recommendations.autoPlay.value) {
+    if (
+      recommendations.autoContinue.value &&
+      !recommendations.autoPlay.value &&
+      listeningHistory.items.length > 0
+    ) {
       recommendations.fetch();
     }
   },
@@ -217,7 +221,7 @@ onMounted(init);
     <h2 class="header">
       <span class="text-3xl font-bold italic flex gap-1.5">
         <span class="">MusicRec</span>
-        <Icon icon="fa-solid fa-music" class="mb-auto -skew-x-3 rotate-12"/>
+        <Icon icon="fa-solid fa-music" class="mb-auto -skew-x-3 rotate-12" />
       </span>
       <div v-if="models.items.length > 0" class="flex items-center gap-1.5">
         <Transition name="fade" mode="out-in">
@@ -300,18 +304,15 @@ onMounted(init);
     </div>
     <div class="flex gap-2">
       <Input v-model="recommendations.topk" placeholder="K..." />
-      <Button @click.prevent="recommendations.fetch()">
+      <Button
+        @click.prevent="recommendations.fetch()"
+        :disabled="
+          listeningHistory.items.length === 0 ||
+          recommendations.autoContinue.value ||
+          recommendations.autoPlay.value
+        "
+      >
         <Icon icon="fa-solid fa-thumbs-up" />
-      </Button>
-      <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
-      <Button @click.prevent="recommendations.autoPlay.toggle()">
-        <Icon
-          :icon="
-            recommendations.autoPlay.value
-              ? 'fa-solid fa-stop'
-              : 'fa-solid fa-play'
-          "
-        />
       </Button>
       <Button
         @click.prevent="recommendations.autoContinue.toggle()"
@@ -323,6 +324,22 @@ onMounted(init);
             recommendations.autoContinue.value
               ? 'fa-solid fa-repeat'
               : 'fa-solid fa-hand-pointer'
+          "
+        />
+      </Button>
+      <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
+      <Button
+        @click.prevent="recommendations.autoPlay.toggle()"
+        :disabled="
+          listeningHistory.items.length === 0 ||
+          recommendations.autoContinue.value
+        "
+      >
+        <Icon
+          :icon="
+            recommendations.autoPlay.value
+              ? 'fa-solid fa-stop'
+              : 'fa-solid fa-play'
           "
         />
       </Button>
