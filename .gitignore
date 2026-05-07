@@ -34,3 +34,4 @@ results_*.json
 
 process.sh
 run_model.py
+.env
