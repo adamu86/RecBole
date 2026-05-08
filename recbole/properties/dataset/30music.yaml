@@ -58,7 +58,7 @@ discretization: ~ # (dict) The discretization settings.
 # Sequential Model Needed
 ITEM_LIST_LENGTH_FIELD: item_length # (str) Field name of the feature representing item sequences' length.
 LIST_SUFFIX: _list # (str) Suffix of field names which are generated as sequences.
-MAX_ITEM_LIST_LENGTH: 90 # (int) Maximum length of each generated sequence.
+MAX_ITEM_LIST_LENGTH: 50 # (int) Maximum length of each generated sequence.
 POSITION_FIELD: position_id # (str) Field name of the generated position sequence.
 
 # Benchmark .inter file
@@ -81,8 +81,8 @@ clip_grad_norm: ~ # (dict) The args of clip_grad_norm_ which will clip gradient 
 weight_decay: 0.0 # (float) The weight decay value (L2 penalty) for optimizers.
 loss_decimal_place: 4 # (int) The decimal place of training loss.
 require_pow: False # (bool) Whether or not to perform power operation in EmbLoss.
-enable_amp: True # (bool) Whether or not to use mixed precision training.
-enable_scaler: True # (bool) Whether or not to use GradScaler in mixed precision training.
+enable_amp: False # (bool) Whether or not to use mixed precision training.
+enable_scaler: False # (bool) Whether or not to use GradScaler in mixed precision training.
 transform: ~ # (str) The transform operation for batch data process.
 
 # Evaluation Settings

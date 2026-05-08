@@ -13,21 +13,9 @@ services:
     tty: true
     volumes:
       - ./app:/workspace/app
-
-      - "./dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/dataset/30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-
-      - "./log/FPMC:/workspace/log/FPMC"
-      - "./log/GRU4Rec:/workspace/log/GRU4Rec"
-      - "./log/NARM:/workspace/log/NARM"
-      - "./log/STAMP:/workspace/log/STAMP"
-      - "./log/SRGNN:/workspace/log/SRGNN"
-
-      - "./saved/FPMC_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/FPMC_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-      - "./saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/GRU4Rec_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-      - "./saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/STAMP_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-      - "./saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/NARM_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-      - "./saved/SRGNN_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]:/workspace/saved/SRGNN_30music__days[125-65]_pcount[5]_ptime[30-1000000]_length[2-90]_recent[90]"
-
+      - ./dataset:/workspace/dataset 
+      - ./log:/workspace/log
+      - ./saved:/workspace/saved
 
 
 # docker compose build --no-cache

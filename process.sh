@@ -1,12 +1,6 @@
 #!/bin/bash
 
 params=(
-    # overlapping, gap=100
-    "365 265"
-    "315 215"
-    "265 165"
-    "215 115"
-    "165 65"
     # non-overlapping, gap=60
     "365 305"
     "305 245"
