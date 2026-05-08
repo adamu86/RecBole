@@ -79,7 +79,7 @@ onUnmounted(() => {
       </div>
       <Icon
         icon="fa-solid fa-chevron-down"
-        class="ml-2 text-sm! text-primary/75 text-sm flex"
+        class="ml-2 text-primary/75 text-sm flex"
         :class="{ '-rotate-x-180': isOpen }"
       />
     </div>

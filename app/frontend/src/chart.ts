@@ -143,6 +143,20 @@ export const buildChart = () => {
           titleFont: { size: 15 },
           bodyFont: { size: 15 },
           padding: 5,
+          callbacks: {
+            beforeBody: (context: any) => {
+              if (context.length > 0) {
+                const dataIndex = context[0].dataIndex;
+                const trainTime = epochs[dataIndex]?.train_time;
+                const evalTime = epochs[dataIndex]?.eval_time;
+                const totalTime = epochs.slice(0, dataIndex + 1).reduce((sum: number, e: Epoch) => sum + (e.train_time ?? 0) + (e.eval_time ?? 0), 0);
+                if (trainTime && evalTime) {
+                  return `Time: ${parseFloat(trainTime.toFixed(2)) + parseFloat(evalTime.toFixed(2))}s\nTrain time: ${trainTime.toFixed(2)}s\nEval time: ${evalTime.toFixed(2)}s\nTotal time: ${totalTime.toFixed(2)}s\n`;
+                }
+              }
+              return '';
+            }
+          }
         },
       },
       scales: {

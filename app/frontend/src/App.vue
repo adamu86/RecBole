@@ -122,6 +122,8 @@ watch(
       listeningHistory.items.length > 0
     ) {
       recommendations.fetch();
+    } else if (listeningHistory.items.length === 0) {
+      recommendations.items = [];
     }
   },
 );

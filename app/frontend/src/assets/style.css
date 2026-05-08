@@ -18,11 +18,10 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply rounded-base;
+  @apply rounded-br-base;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
   border: 4px solid transparent;
   background-clip: padding-box;
   @apply rounded-full bg-primary transition-all;
@@ -34,7 +33,7 @@
 
 html {
   font-family: 'Rubik', sans-serif;
-  @apply text-gray-800 bg-primary/10 duration-100 overflow-x-hidden;
+  @apply text-gray-800 bg-primary/10 **:duration-100 overflow-x-hidden;
 }
 
 main {
@@ -96,7 +95,7 @@ ul {
 
 .track {
   @apply
-  relative cursor-pointer bg-white/25 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:ring-4 ring-primary transition-all;
+  relative cursor-pointer bg-white/25 rounded-base p-1 gap-1.5 grid grid-cols-[auto_1fr] hover:ring-4 ring-primary transition-all;
 }
 
 .column {
