@@ -192,6 +192,18 @@ const modelOptions = computed(() =>
   })),
 );
 
+const before = computed(() => {
+  return Number(
+    models.current
+      .split("/")[1]
+      ?.split("__")[1]
+      ?.split("_")[0]
+      ?.split("[")[1]
+      ?.split("]")[0]
+      ?.split("-")[1],
+  );
+});
+
 const load = async () => {
   await models.fetch();
   await availableTracks.fetch();
@@ -246,8 +258,8 @@ onUnmounted(() => {
 <template>
   <main :class="models.isFetching ? 'pointer-events-none opacity-50' : ''">
     <h2 class="header">
-      <span class="text-3xl font-bold italic flex gap-1.5" @click="reloadPage">
-        <span class="">MusicRec</span>
+      <span class="text-3xl font-bold flex gap-1.5" @click="reloadPage">
+        <span class="italic">MusicRec</span>
         <Icon icon="fa-solid fa-music" class="mb-auto -skew-x-3 rotate-12" />
       </span>
       <div v-if="models.items.length > 0" class="flex items-center gap-2">
@@ -286,6 +298,7 @@ onUnmounted(() => {
     <AvailableTracksColumn
       :tracks="availableTracks.items"
       @add="listeningHistory.addTrack($event)"
+      :before="before"
     />
     <ListeningHistoryColumn
       :tracks="listeningHistory.items"
