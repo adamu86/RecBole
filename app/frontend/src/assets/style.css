@@ -13,19 +13,37 @@
   src: url('./Rubik-Regular.ttf') format('truetype');
 }
 
+::-webkit-scrollbar {
+  @apply w-4;
+}
+
+::-webkit-scrollbar-track {
+  @apply rounded-base;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  @apply rounded-full bg-primary transition-all;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-secondary;
+}
+
 html {
   font-family: 'Rubik', sans-serif;
-  @apply
-  text-gray-800 bg-primary/10 duration-100
+  @apply text-gray-800 bg-primary/10 duration-100 overflow-x-hidden;
 }
 
 main {
   @apply
-  grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-2 p-4 h-screen overflow-hidden
+  grid grid-rows-[auto_1fr_auto] grid-cols-3 gap-2 p-4 h-screen overflow-hidden;
 }
 
 .header {
-  @apply col-span-3 flex flex-row justify-between cursor-pointer
+  @apply col-span-3 flex flex-row justify-between cursor-pointer;
 }
 
 .app-button {
@@ -38,11 +56,7 @@ main {
 }
 
 .app-input {
-  @apply p-2 h-10 ring-1 ring-input/20 rounded-base outline-none w-full bg-input/5 border-b-5 pt-3 border-transparent focus:border-primary transition-all;
-}
-
-.app-select {
-  @apply p-2 h-10 rounded-base outline-none bg-input/10 focus:ring-1 focus:ring-primary focus:inset-ring-3 focus:inset-ring-primary transition-all cursor-pointer;
+  @apply p-2 h-10 rounded-base outline-none w-full flex items-center justify-between bg-input/5 inset-ring-1 inset-ring-primary/50 focus:ring-4 focus:ring-primary/75 focus:inset-ring-0 transition-all;
 }
 
 .app-select:disabled {
@@ -82,12 +96,12 @@ ul {
 
 .track {
   @apply
-  relative cursor-pointer bg-white/25 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:ring-4 ring-primary transition-all
+  relative cursor-pointer bg-white/25 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:ring-4 ring-primary transition-all;
 }
 
 .column {
   @apply
-  grid grid-rows-[auto_1fr] min-h-0
+  grid grid-rows-[auto_1fr] min-h-0;
 }
 
 .column-title {

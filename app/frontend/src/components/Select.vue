@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from "vue";
 
 const props = defineProps<{
   options: { label: string; value: string }[];
@@ -43,6 +43,12 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
+watch(isOpen, (newValue) => {
+  if (!newValue) {
+    (document.activeElement as HTMLElement).blur();
+  }
+});
+
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
 });
@@ -55,23 +61,25 @@ onUnmounted(() => {
 <template>
   <div class="relative w-max" ref="selectRef">
     <div
-      class="ring-1 ring-input/20 border-b-5 border-transparent transition-all pt-3 h-10 rounded p-2 bg-input/5 flex items-center justify-between cursor-pointer select-none"
-      :class="{ 'border-primary!': isOpen }"
+      id="select"
+      tabindex="0"
+      class="app-input cursor-pointer"
       @click="toggle"
     >
       <div class="grid items-center">
         <span
-          class="invisible col-start-1 row-start-1 font-medium whitespace-nowrap"
+          class="invisible col-start-1 row-start-1 whitespace-nowrap"
           aria-hidden="true"
-          >{{ longestLabel }}</span
         >
-        <span class="truncate font-medium col-start-1 row-start-1">{{
-          selectedLabel
-        }}</span>
+          {{ longestLabel }}
+        </span>
+        <span class="truncate font-medium col-start-1 row-start-1">
+          {{ selectedLabel }}
+        </span>
       </div>
       <Icon
         icon="fa-solid fa-chevron-down"
-        class="ml-2 text-sm! text-gray-500 text-sm"
+        class="ml-2 text-sm! text-primary/75 text-sm flex"
         :class="{ '-rotate-x-180': isOpen }"
       />
     </div>
@@ -79,7 +87,7 @@ onUnmounted(() => {
     <Transition name="slide-fade-top">
       <div
         v-if="isOpen"
-        class="ring-1 ring-input/20 absolute z-50 w-full p-1 mt-1 bg-gray-100 rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
+        class="ring-1 ring-input/20 absolute z-50 w-full p-1 mt-2 bg-gray-100 rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
       >
         <div
           v-for="option in options"
@@ -88,7 +96,7 @@ onUnmounted(() => {
           @click="selectOption(option.value)"
         >
           <span
-            class="p-1 inline-block transition-all hover:translate-x-1"
+            class="p-1 inline-block transition-all"
             :class="modelValue === option.value ? 'font-bold' : ''"
           >
             {{ option.label }}
