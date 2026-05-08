@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import argparse
 import subprocess
@@ -12,14 +13,19 @@ DATA_PATH_RAW = "dataset_raw/"
 DATA_PATH_TEMP = "dataset_temp/"
 DATA_PATH_PROCESSED = "dataset_processed/"
 
-MIN_TRACK_PLAYCOUNT = 5
+MIN_TRACK_PLAYCOUNT = 25
 MIN_SESSION_LENGTH = 2
-MAX_SESSION_LENGTH = 90
-MIN_SESSION_PLAYTIME = 30
+MAX_SESSION_LENGTH = 100
+MIN_SESSION_PLAYTIME = 60
 MAX_SESSION_PLAYTIME = 1_000_000
 MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
 DAYS_FROM_MAX = 365
 DAYS_TO_MAX = 65
+
+MAX_VALID_TRACK_ID = 3893303
+MIN_TIMESTAMP = 1390209860
+MAX_TIMESTAMP = 1421745720
+
 
 parser = argparse.ArgumentParser()
 
@@ -127,24 +133,13 @@ def initialize():
     )
 
 def filter_by_time_window(days_from_max = DAYS_FROM_MAX, days_to_max = DAYS_TO_MAX):
-    if days_from_max == 365 and days_to_max == 0:
-        return
-
     print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
 
     input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
-    max_timestamp = 0
-    with open(input_path, "r", encoding="utf-8") as fin:
-        for line in tqdm(fin, total=get_line_count(input_path), desc="Finding max timestamp"):
-            parts = line.strip().split("\t")
-            ts = int(parts[1])
-            if ts > max_timestamp:
-                max_timestamp = ts
-
-    lower_bound = max_timestamp - days_from_max * 86400
-    upper_bound = max_timestamp - days_to_max * 86400
+    lower_bound = MAX_TIMESTAMP - days_from_max * 86400
+    upper_bound = MAX_TIMESTAMP - days_to_max * 86400
 
     kept = 0
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
@@ -158,52 +153,29 @@ def filter_by_time_window(days_from_max = DAYS_FROM_MAX, days_to_max = DAYS_TO_M
     print(f"Kept {kept:,} sessions")
 
 def filter_tracks_by_playcount():
-    print("\nFiltering tracks by playcount...")
+    print("\nFiltering tracks by tracks.tsv whitelist...")
 
     input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-    track_counts = Counter()
+    tracks_file = get_data_file_path(DATA_PATH_RAW, "tracks")
 
-    with open(input_path, "r", encoding="utf-8") as fin:
-        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Counting tracks in {input_path}"):
-            parts = line.strip().split("\t")
-            session_tracks = json.loads(parts[3])
-            for t in session_tracks:
-                track_counts[t["id"]] += 1
+    whitelisted = set()
+    with open(tracks_file, "r", encoding="utf-8") as fin:
+        for line in fin:
+            tid = line.strip().split("\t", 1)[0]
+            whitelisted.add(int(tid))
 
-    allowed_tracks = {tid for tid, count in track_counts.items() if count >= MIN_TRACK_PLAYCOUNT}
+    print(f"Loaded {len(whitelisted):,} whitelisted tracks from {tracks_file}")
 
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Filtering tracks in {input_path}"):
             parts = line.strip().split("\t")
             session_tracks = json.loads(parts[3])
-            session_tracks = [t for t in session_tracks if t["id"] in allowed_tracks]
+            session_tracks = [t for t in session_tracks if t["id"] in whitelisted]
 
             if MIN_SESSION_LENGTH <= len(session_tracks) <= MAX_SESSION_LENGTH:
                 fout.write(f"{parts[0]}\t{parts[1]}\t{parts[2]}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
-
-def fill_playratio():
-    print("\nFilling missing playratios and clipping values...")
-
-    input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
-    output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
-
-    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        for line in tqdm(fin, total=get_line_count(input_path), desc=f"Processing playratio in {input_path}"):
-            parts = line.strip().split("\t")
-            tracks_data = json.loads(parts[3])
-            
-            for t in tracks_data:
-                if t["pr"] is None and t["ac"] == "play":
-                    t["pr"] = 1.0
-                elif t["pr"] is None and t["ac"] == "skip":
-                    t["pr"] = 0.0
-                elif t["pr"] is not None and t["pr"] > 2.0 and t["ac"] == "play":
-                    t["pr"] = min(t["pr"], 2.0)
-
-            parts[3] = json.dumps(tracks_data, separators=(',', ':'))
-            fout.write("\t".join(parts) + "\n")
-
+                
 def make_inter_file(alias):
     print("\nCreating .inter file...")
     
@@ -253,19 +225,82 @@ def make_tracks_file(alias):
                 fout.write(line)
                 kept += 1
 
+_UNKNOWN_PATTERNS = re.compile(
+    r'\[unknown\]'
+    r'|<Artista Desconhecido>'
+    r'|<Artista desconocido>'
+    r'|\(artistes? inconnus?\)'
+    r'|<Nieznany wykonawca>'
+    r'|<Bilinmeyen>'
+    r'|<Desconhecido>'
+    r'|<Unbekannter Interpret>'
+    r'|<Okänd artist>'
+    r'|unknown\s*artist'
+    r'|artiste?\s*inconnu'
+    r'|various\s*artists?',
+    re.IGNORECASE
+)
+
+_URL_PATTERN = re.compile(
+    r'www\.|\.com|\.net|\.org|\.ru|\.info|https?://',
+    re.IGNORECASE
+)
+
+def _is_noisy(text):
+    if not text or not text.strip():
+        return True
+    if '\ufffd' in text:
+        return True
+    letter_count = sum(1 for c in text if c.isalpha())
+    if letter_count < 2:
+        return True
+    if _UNKNOWN_PATTERNS.search(text):
+        return True
+    if _URL_PATTERN.search(text):
+        return True
+    return False
+
 def make_track_names_file():
     print("\nCreating track names file...")
-    
+
+    sessions_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     tracks_source = os.path.join(DATA_PATH_RAW, "tracks.idomaar")
     output_path = os.path.join(DATA_PATH_RAW, "tracks.tsv")
-    
-    with open(tracks_source, 'r', encoding='utf-8') as f_in, open(output_path, 'w', encoding='utf-8') as f_out:
-        for line in tqdm(f_in, total=get_line_count(tracks_source), desc="Filtering tracks"):
-            parts = line.strip().split('\t')
-            track_id = parts[1]
+
+    track_counts = Counter()
+    with open(sessions_path, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(sessions_path), desc="Counting tracks in sessions"):
+            parts = line.strip().split("\t")
+            session_tracks = json.loads(parts[3])
+            for t in session_tracks:
+                if int(t["id"]) <= MAX_VALID_TRACK_ID:
+                    track_counts[int(t["id"])] += 1
+
+    track_ids = {tid for tid, count in track_counts.items() if count >= MIN_TRACK_PLAYCOUNT}
+    print(f"Found {len(track_counts):,} unique tracks, {len(track_ids):,} with >= {MIN_TRACK_PLAYCOUNT} plays")
+
+    tracks = {}
+    with open(tracks_source, "r", encoding="utf-8") as fin:
+        for line in tqdm(fin, total=get_line_count(tracks_source), desc="Loading track names"):
+            parts = line.strip().split("\t")
+            track_id = int(parts[1])
+
+            if track_id not in track_ids:
+                continue
+
             meta = json.loads(parts[3])
-            name = unquote_plus(meta['name'])
-            f_out.write(f"{track_id}\t{name}\n")
+            name = unquote_plus(meta["name"])
+
+            if _is_noisy(name):
+                continue
+
+            tracks[track_id] = name
+
+    with open(output_path, "w", encoding="utf-8") as fout:
+        for track_id, name in sorted(tracks.items()):
+            fout.write(f"{track_id}\t{name}\n")
+
+    print(f"Saved {len(tracks):,} clean tracks to {output_path}")
 
 def get_dataset_name():
     name_parts = [
@@ -279,11 +314,14 @@ def get_dataset_name():
     return "30music__" + "_".join(name_parts)
 
 if __name__ == "__main__":
-    os.makedirs(DATA_PATH_TEMP, exist_ok=True)
-    os.makedirs(DATA_PATH_PROCESSED, exist_ok=True)
-
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
         initialize()
+        filter_by_time_window(365, 65)
+        os.remove(get_data_file_path(DATA_PATH_RAW, DATA_FILE))
+        shutil.copy(
+            get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+            get_data_file_path(DATA_PATH_RAW, DATA_FILE)
+        )
 
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks")):
         make_track_names_file()
@@ -292,7 +330,6 @@ if __name__ == "__main__":
     copy_processed_to_temp()
     filter_tracks_by_playcount()
     copy_processed_to_temp()
-    # fill_playratio()
     make_inter_file(get_dataset_name())
     make_tracks_file(get_dataset_name())
     remove_temp_file()
