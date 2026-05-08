@@ -32,7 +32,23 @@ export const metricKeys = computed(() => {
   keys.add('train_loss');
   keys.add('valid_score');
   epochs.forEach((e: Epoch) => Object.keys(e.metrics).forEach((k: string) => keys.add(k)));
-  return Array.from(keys);
+  const arr = Array.from(keys);
+  arr.sort((a, b) => {
+    if (a === 'train_loss') return -1;
+    if (b === 'train_loss') return 1;
+    if (a === 'valid_score') return -1;
+    if (b === 'valid_score') return 1;
+    
+    const [nameA, kA] = a.split('@');
+    const [nameB, kB] = b.split('@');
+    
+    if (nameA === nameB && kA !== undefined && kB !== undefined) {
+      return parseInt(kA) - parseInt(kB);
+    }
+    
+    return a.localeCompare(b);
+  });
+  return arr;
 });
 
 export const toggleMetric = (metric: string) => {
@@ -132,7 +148,7 @@ export const buildChart = () => {
       scales: {
         x: {
           grid: { 
-            color: '#f1f5f9' 
+            color: '#cbd5e1' 
           },
           ticks: {
             font: { size: 12 },
@@ -149,7 +165,7 @@ export const buildChart = () => {
           position: 'left',
           beginAtZero: true,
           grid: { 
-            color: '#f1f5f9' 
+            color: '#cbd5e1' 
           },
           ticks: { 
             font: { size: 12 }, 

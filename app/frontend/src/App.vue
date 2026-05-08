@@ -33,7 +33,7 @@ const availableTracks = reactive({
   items: [] as Track[],
   page: {
     current: 1,
-    itemsLimit: 25,
+    itemsLimit: 100,
     get itemsOffset(): number {
       return (this.current - 1) * this.itemsLimit;
     },

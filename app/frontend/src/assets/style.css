@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: var(--color-sky-600);
-  --color-primary-hover: var(--color-sky-700);
-  --color-secondary: var(--color-sky-700);
-  --color-input: var(--color-gray-600);
+  --color-primary: var(--color-slate-500);
+  --color-primary-hover: var(--color-slate-600);
+  --color-secondary: var(--color-slate-600);
+  --color-input: var(--color-slate-600);
   --radius-base: var(--radius-sm);
 }
 
@@ -16,7 +16,7 @@
 html {
   font-family: 'Rubik', sans-serif;
   @apply
-  text-gray-800
+  text-gray-800 bg-primary/10 duration-100
 }
 
 main {
@@ -62,24 +62,27 @@ ul {
   flex flex-col gap-1 overflow-y-auto p-2 bg-secondary/10 rounded-b-base
 }
 
-.track {
-  @apply
-  relative cursor-pointer bg-white/50 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:bg-white
-}
-
 .breadcrumb {
   @apply
-  bg-primary text-white rounded px-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-all duration-100
+  bg-primary text-white rounded px-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-all
 }
 
 .breadcrumb-group {
   @apply
-  absolute top-3/4 right-0 z-100 flex pointer-events-none grid grid-flow-col gap-1
+  absolute top-[calc(100%-0.1rem)] right-1 z-10 flex pointer-events-none grid grid-flow-col gap-1
 }
 
 .rank {
   @apply
-  bg-white px-1 rounded group-hover:font-bold h-fit
+  flex items-center justify-center
+  min-w-6 h-6 px-1
+  bg-primary/10 text-primary-hover font-bold text-xs
+  rounded-base;
+}
+
+.track {
+  @apply
+  relative cursor-pointer bg-white/25 rounded-base p-1 gap-1 grid grid-cols-[auto_1fr] hover:ring-4 ring-primary transition-all
 }
 
 .column {
@@ -89,7 +92,7 @@ ul {
 
 .column-title {
   @apply
-  p-2 text-xl font-semibold bg-secondary/20 rounded-t-base select-none h-10
+  p-2 text-xl font-semibold bg-secondary/15 rounded-t-base select-none h-10
 }
 
 .fade-enter-active {

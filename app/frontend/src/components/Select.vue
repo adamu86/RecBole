@@ -60,8 +60,14 @@ onUnmounted(() => {
       @click="toggle"
     >
       <div class="grid items-center">
-        <span class="invisible col-start-1 row-start-1 font-medium whitespace-nowrap" aria-hidden="true">{{ longestLabel }}</span>
-        <span class="truncate font-medium col-start-1 row-start-1">{{ selectedLabel }}</span>
+        <span
+          class="invisible col-start-1 row-start-1 font-medium whitespace-nowrap"
+          aria-hidden="true"
+          >{{ longestLabel }}</span
+        >
+        <span class="truncate font-medium col-start-1 row-start-1">{{
+          selectedLabel
+        }}</span>
       </div>
       <Icon
         icon="fa-solid fa-chevron-down"
@@ -73,16 +79,16 @@ onUnmounted(() => {
     <Transition name="slide-fade-top">
       <div
         v-if="isOpen"
-        class="ring-1 ring-input/20 absolute z-50 w-full p-1 mt-1 bg-white rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
+        class="ring-1 ring-input/20 absolute z-50 w-full p-1 mt-1 bg-gray-100 rounded-base shadow-lg max-h-64 overflow-y-auto flex flex-col p-1"
       >
         <div
           v-for="option in options"
           :key="option.value"
-          class="cursor-pointer rounded-sm whitespace-nowrap"
+          class="cursor-pointer rounded-sm whitespace-nowrap transition-all hover:bg-primary/10"
           @click="selectOption(option.value)"
         >
-          <span 
-            class="p-1 inline-block transition-all duration-200 hover:translate-x-1"
+          <span
+            class="p-1 inline-block transition-all hover:translate-x-1"
             :class="modelValue === option.value ? 'font-bold' : ''"
           >
             {{ option.label }}
