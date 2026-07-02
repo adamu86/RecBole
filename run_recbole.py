@@ -2,7 +2,7 @@ import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, NextItNet, SRGNN
+from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, SASRec, SRGNN
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from evaluate_playlist import evaluate_playlist
@@ -21,47 +21,49 @@ def _patched_torch_load(*args, **kwargs):
 torch.load = _patched_torch_load
 
 model_dict = {
-    'FPMC': {
+    # 'FPMC': {
+    #     'parameter_dict': {
+    #         'train_batch_size': 4096,
+    #     },
+    #     'model': FPMC
+    # },
+    # 'GRU4Rec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': GRU4Rec
+    # },
+    # 'NARM': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': NARM
+    # },
+    # 'STAMP': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None,
+    #     },
+    #     'model': STAMP
+    # },
+    'SASRec': {
         'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
 
         },
-        'model': FPMC
+        'model': SASRec
     },
-    'GRU4Rec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': GRU4Rec
-    },
-    'NARM': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': NARM
-    },
-    'STAMP': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': STAMP
-    },
-    'NextItNet': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': NextItNet
-    },
-    'SRGNN': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SRGNN
-    }
+    # 'SRGNN': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None,
+    #         'train_batch_size': 4096
+    #     },
+    #     'model': SRGNN
+    # }
 }
 
 dataset_dir = Path("dataset")
@@ -79,73 +81,77 @@ for dataset_name in dataset_dict.keys():
             f'recbole/properties/dataset/{dataset_name}.yaml'
         )
 
-for model_name in model_dict.keys():
-    for dataset_name in dataset_dict.keys():
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-            handler.close()
+# for model_name in model_dict.keys():
+#     for dataset_name in dataset_dict.keys():
+#         for handler in logging.root.handlers[:]:
+#             logging.root.removeHandler(handler)
+#             handler.close()
 
-        if os.path.exists(f"saved/{model_name}_{dataset_name}"):
-            continue
+#         if os.path.exists(f"saved/{model_name}_{dataset_name}"):
+#             continue
 
-        try:
-            config = Config(
-                model=model_name, 
-                dataset=dataset_name, 
-                config_dict={
-                    **model_dict[model_name]['parameter_dict'],
-                    'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
-                    'save_dataset': False
-                }
-            )
+#         try:
+#             config = Config(
+#                 model=model_name, 
+#                 dataset=dataset_name, 
+#                 config_dict={
+#                     **model_dict[model_name]['parameter_dict'],
+#                     'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
+#                     'save_dataset': False
+#                 }
+#             )
 
-            init_seed(config['seed'], config['reproducibility'])
-            init_logger(config)
-            if not logger.handlers:
-                c_handler = logging.StreamHandler()
-                c_handler.setLevel(logging.INFO)
-                logger.addHandler(c_handler)
+#             init_seed(config['seed'], config['reproducibility'])
+#             init_logger(config)
+#             if not logger.handlers:
+#                 c_handler = logging.StreamHandler()
+#                 c_handler.setLevel(logging.INFO)
+#                 logger.addHandler(c_handler)
             
-            logger.info(config)
-            dataset = create_dataset(config)
-            logger.info(dataset)
+#             logger.info(config)
+#             dataset = create_dataset(config)
+#             logger.info(dataset)
 
-            train_data, valid_data, test_data = data_preparation(config, dataset)
-            model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
-            logger.info(model)
+#             train_data, valid_data, test_data = data_preparation(config, dataset)
+#             model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
+#             logger.info(model)
 
-            trainer = Trainer(config, model)
-            best_valid_score, best_valid_result = trainer.fit(
-                train_data,
-                valid_data,
-                saved=True,
-                show_progress=True
-            )
-            test_result = trainer.evaluate(test_data)
+#             trainer = Trainer(config, model)
+#             best_valid_score, best_valid_result = trainer.fit(
+#                 train_data,
+#                 valid_data,
+#                 saved=True,
+#                 show_progress=True
+#             )
+#             test_result = trainer.evaluate(test_data)
 
-            with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
-                json.dump({"test_result": test_result}, f, indent=2)
+#             with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
+#                 json.dump({"test_result": test_result}, f, indent=2)
 
-            evaluate_playlist(
-                config=config,
-                model=model,
-                dataset=dataset,
-                train_data=train_data,
-                test_data=test_data
-            )
+#             evaluate_playlist(
+#                 config=config,
+#                 model=model,
+#                 dataset=dataset,
+#                 train_data=train_data,
+#                 test_data=test_data
+#             )
 
-            del model, trainer, dataset, train_data, valid_data, test_data
-            gc.collect()
-            torch.cuda.empty_cache()
-        except Exception as e:
-            logger.error(f"Failed {model_name} on {dataset_name}: {e}")
-            traceback.print_exc()
-            torch.cuda.empty_cache()
-            continue
+#             del model, trainer, dataset, train_data, valid_data, test_data
+#             gc.collect()
+#             torch.cuda.empty_cache()
+#         except Exception as e:
+#             logger.error(f"Failed {model_name} on {dataset_name}: {e}")
+#             traceback.print_exc()
+#             torch.cuda.empty_cache()
+#             continue
+
+dataset_dict = dict(reversed(list(dataset_dict.items())))
 
 # dokręcanie śruby
 for model_name in model_dict.keys():
     for dataset_name in dataset_dict.keys():
+        if "days[245-185]" not in dataset_name:
+            continue
         checkpoint_dir = f"saved/{model_name}_{dataset_name}"
         if not os.path.exists(checkpoint_dir):
             continue
@@ -161,7 +167,7 @@ for model_name in model_dict.keys():
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': checkpoint_dir,
-                    'epochs': 30,
+                    'epochs': 20,
                     'save_dataset': False
                 }
             )

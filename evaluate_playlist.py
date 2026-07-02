@@ -137,6 +137,13 @@ def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, 
 
             # generujemy predykcje dla każdego utworu i wybieramy max_k najbardziej prawdopodobnych
             scores = model.full_sort_predict(interaction)
+            
+            # context_indices = torch.tensor(session_context, dtype=torch.long).to(device)
+
+            # # przypisujemy ekstremalnie niską wartość punktową utworom, które już wystąpiły w tej sesji
+            # scores[0][context_indices] = -1e9
+
+            # wybieramy max_k najbardziej prawdopodobnych utworów spośród pozostałych.
             topk_indices = torch.topk(scores, k=max_k, dim=1).indices[0].cpu().numpy()
 
             # sprawdzamy, czy model trafił utwory z sekwencji docelowej
