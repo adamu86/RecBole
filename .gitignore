@@ -5,7 +5,6 @@
 
 .idea/
 *.pyc
-*.log
 log_tensorboard
 saved/
 *.lprof
@@ -16,7 +15,6 @@ wandb/*
 
 .venv
 /app/frontend/node_modules
-log
 dataset/*
 dataset_raw/*
 dataset_temp/*

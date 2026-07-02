@@ -1,0 +1,950 @@
+Mon 11 May 2026 10:22:44 INFO  
+General Hyper Parameters:
+gpu_id = 0
+use_gpu = True
+seed = 2020
+state = INFO
+reproducibility = True
+data_path = dataset/30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]
+checkpoint_dir = saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]
+show_progress = True
+save_dataset = False
+dataset_save_path = None
+save_dataloaders = False
+dataloaders_save_path = None
+log_wandb = False
+
+Training Hyper Parameters:
+epochs = 20
+train_batch_size = 4096
+learner = adam
+learning_rate = 0.001
+train_neg_sample_args = {'distribution': 'uniform', 'sample_num': 1, 'alpha': 1.0, 'dynamic': False, 'candidate_num': 0}
+eval_step = 1
+stopping_step = 3
+clip_grad_norm = None
+weight_decay = 0.0
+loss_decimal_place = 4
+
+Evaluation Hyper Parameters:
+eval_args = {'split': {'RS': [8, 1, 1]}, 'order': 'TO', 'group_by': 'user', 'mode': {'valid': 'full', 'test': 'full'}}
+repeatable = True
+metrics = ['Recall', 'Precision', 'MRR', 'MAP', 'Hit', 'NDCG', 'AveragePopularity', 'ItemCoverage', 'GiniIndex']
+topk = [5, 10, 15, 20]
+valid_metric = MRR@10
+valid_metric_bigger = True
+eval_batch_size = 2048
+metric_decimal_place = 4
+
+Dataset Hyper Parameters:
+gpu_id = 0
+worker = 0
+use_gpu = True
+seed = 2020
+state = INFO
+reproducibility = True
+data_path = dataset/30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]
+checkpoint_dir = saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]
+show_progress = True
+save_dataset = False
+dataset_save_path = None
+save_dataloaders = False
+dataloaders_save_path = None
+log_wandb = False
+wandb_project = recbole
+shuffle = True
+epochs = 20
+train_batch_size = 4096
+learner = adam
+learning_rate = 0.001
+train_neg_sample_args = {'distribution': 'uniform', 'sample_num': 1, 'alpha': 1.0, 'dynamic': False, 'candidate_num': 0}
+eval_step = 1
+stopping_step = 3
+clip_grad_norm = None
+weight_decay = 0.0
+loss_decimal_place = 4
+require_pow = False
+enable_amp = False
+enable_scaler = False
+transform = None
+eval_args = {'split': {'RS': [8, 1, 1]}, 'order': 'TO', 'group_by': 'user', 'mode': {'valid': 'full', 'test': 'full'}}
+repeatable = True
+metrics = ['Recall', 'Precision', 'MRR', 'MAP', 'Hit', 'NDCG', 'AveragePopularity', 'ItemCoverage', 'GiniIndex']
+topk = [5, 10, 15, 20]
+valid_metric = MRR@10
+valid_metric_bigger = True
+eval_batch_size = 2048
+metric_decimal_place = 4
+field_separator = 	
+seq_separator =  
+USER_ID_FIELD = session_id
+ITEM_ID_FIELD = item_id
+RATING_FIELD = rating
+TIME_FIELD = timestamp
+seq_len = None
+LABEL_FIELD = label
+threshold = None
+NEG_PREFIX = neg_
+numerical_features = []
+load_col = {'inter': ['session_id', 'item_id', 'timestamp']}
+unload_col = None
+unused_col = None
+additional_feat_suffix = None
+rm_dup_inter = None
+val_interval = None
+filter_inter_by_user_or_item = True
+user_inter_num_interval = [0,inf)
+item_inter_num_interval = [0,inf)
+alias_of_user_id = None
+alias_of_item_id = None
+alias_of_entity_id = None
+alias_of_relation_id = None
+preload_weight = None
+normalize_field = None
+normalize_all = None
+discretization = None
+ITEM_LIST_LENGTH_FIELD = item_length
+LIST_SUFFIX = _list
+MAX_ITEM_LIST_LENGTH = 100
+POSITION_FIELD = position_id
+HEAD_ENTITY_ID_FIELD = head_id
+TAIL_ENTITY_ID_FIELD = tail_id
+RELATION_ID_FIELD = relation_id
+ENTITY_ID_FIELD = entity_id
+benchmark_filename = None
+
+Other Hyper Parameters: 
+embedding_size = 64
+loss_type = BPR
+kg_reverse_r = False
+entity_kg_num_interval = [0,inf)
+relation_kg_num_interval = [0,inf)
+MODEL_TYPE = ModelType.SEQUENTIAL
+MODEL_INPUT_TYPE = InputType.PAIRWISE
+eval_type = EvaluatorType.RANKING
+single_spec = True
+local_rank = 0
+device = cuda
+valid_neg_sample_args = {'distribution': 'uniform', 'sample_num': 'none'}
+test_neg_sample_args = {'distribution': 'uniform', 'sample_num': 'none'}
+
+
+Mon 11 May 2026 10:22:53 INFO  30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]
+The number of users: 221312
+Average actions of users: 9.805495434027229
+The number of items: 124576
+Average actions of items: 17.419739112984146
+The number of inters: 2170064
+The sparsity of the dataset: 99.9921289404638%
+Remain Fields: ['session_id', 'item_id', 'timestamp']
+Mon 11 May 2026 10:23:20 INFO  [Training]: train_batch_size = [4096] train_neg_sample_args: [{'distribution': 'uniform', 'sample_num': 1, 'alpha': 1.0, 'dynamic': False, 'candidate_num': 0}]
+Mon 11 May 2026 10:23:20 INFO  [Evaluation]: eval_batch_size = [2048] eval_args: [{'split': {'RS': [8, 1, 1]}, 'order': 'TO', 'group_by': 'user', 'mode': {'valid': 'full', 'test': 'full'}}]
+Mon 11 May 2026 10:23:20 INFO  FPMC(
+  (UI_emb): Embedding(221312, 64)
+  (IU_emb): Embedding(124576, 64)
+  (LI_emb): Embedding(124576, 64, padding_idx=0)
+  (IL_emb): Embedding(124576, 64)
+  (loss_fct): BPRLoss()
+)
+Trainable parameters: 38082560
+Mon 11 May 2026 10:24:47 INFO  epoch 0 training [time: 85.31s, train loss: 238.5654]
+Mon 11 May 2026 10:25:00 INFO  epoch 0 evaluating [time: 12.37s, valid_score: 0.122500]
+Mon 11 May 2026 10:25:00 INFO  valid result: 
+recall@5 : 0.1535
+recall@10 : 0.1775
+recall@15 : 0.1916
+recall@20 : 0.2015
+precision@5 : 0.0307
+precision@10 : 0.0177
+precision@15 : 0.0128
+precision@20 : 0.0101
+mrr@5 : 0.1193
+mrr@10 : 0.1225
+mrr@15 : 0.1236
+mrr@20 : 0.1242
+map@5 : 0.1193
+map@10 : 0.1225
+map@15 : 0.1236
+map@20 : 0.1242
+hit@5 : 0.1535
+hit@10 : 0.1775
+hit@15 : 0.1916
+hit@20 : 0.2015
+ndcg@5 : 0.1279
+ndcg@10 : 0.1356
+ndcg@15 : 0.1394
+ndcg@20 : 0.1417
+averagepopularity@5 : 366.3827
+averagepopularity@10 : 345.2419
+averagepopularity@15 : 330.8096
+averagepopularity@20 : 319.7824
+itemcoverage@5 : 0.0792
+itemcoverage@10 : 0.0944
+itemcoverage@15 : 0.1045
+itemcoverage@20 : 0.1124
+giniindex@5 : 0.9918
+giniindex@10 : 0.9916
+giniindex@15 : 0.9913
+giniindex@20 : 0.991
+Mon 11 May 2026 10:25:02 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:26:28 INFO  epoch 1 training [time: 86.54s, train loss: 174.8504]
+Mon 11 May 2026 10:26:40 INFO  epoch 1 evaluating [time: 12.09s, valid_score: 0.152300]
+Mon 11 May 2026 10:26:40 INFO  valid result: 
+recall@5 : 0.1928
+recall@10 : 0.224
+recall@15 : 0.2411
+recall@20 : 0.2532
+precision@5 : 0.0386
+precision@10 : 0.0224
+precision@15 : 0.0161
+precision@20 : 0.0127
+mrr@5 : 0.1481
+mrr@10 : 0.1523
+mrr@15 : 0.1536
+mrr@20 : 0.1543
+map@5 : 0.1481
+map@10 : 0.1523
+map@15 : 0.1536
+map@20 : 0.1543
+hit@5 : 0.1928
+hit@10 : 0.224
+hit@15 : 0.2411
+hit@20 : 0.2532
+ndcg@5 : 0.1593
+ndcg@10 : 0.1694
+ndcg@15 : 0.1739
+ndcg@20 : 0.1768
+averagepopularity@5 : 370.6544
+averagepopularity@10 : 349.8693
+averagepopularity@15 : 337.8778
+averagepopularity@20 : 328.0508
+itemcoverage@5 : 0.1419
+itemcoverage@10 : 0.1675
+itemcoverage@15 : 0.1839
+itemcoverage@20 : 0.1969
+giniindex@5 : 0.9821
+giniindex@10 : 0.9817
+giniindex@15 : 0.9815
+giniindex@20 : 0.9813
+Mon 11 May 2026 10:26:42 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:28:12 INFO  epoch 2 training [time: 90.31s, train loss: 119.9885]
+Mon 11 May 2026 10:28:24 INFO  epoch 2 evaluating [time: 12.08s, valid_score: 0.167100]
+Mon 11 May 2026 10:28:24 INFO  valid result: 
+recall@5 : 0.2134
+recall@10 : 0.2499
+recall@15 : 0.2698
+recall@20 : 0.2838
+precision@5 : 0.0427
+precision@10 : 0.025
+precision@15 : 0.018
+precision@20 : 0.0142
+mrr@5 : 0.1622
+mrr@10 : 0.1671
+mrr@15 : 0.1687
+mrr@20 : 0.1695
+map@5 : 0.1622
+map@10 : 0.1671
+map@15 : 0.1687
+map@20 : 0.1695
+hit@5 : 0.2134
+hit@10 : 0.2499
+hit@15 : 0.2698
+hit@20 : 0.2838
+ndcg@5 : 0.175
+ndcg@10 : 0.1868
+ndcg@15 : 0.1921
+ndcg@20 : 0.1954
+averagepopularity@5 : 343.0187
+averagepopularity@10 : 325.1105
+averagepopularity@15 : 314.3856
+averagepopularity@20 : 305.7376
+itemcoverage@5 : 0.1925
+itemcoverage@10 : 0.2292
+itemcoverage@15 : 0.2535
+itemcoverage@20 : 0.2711
+giniindex@5 : 0.974
+giniindex@10 : 0.973
+giniindex@15 : 0.9726
+giniindex@20 : 0.9724
+Mon 11 May 2026 10:28:26 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:29:53 INFO  epoch 3 training [time: 86.40s, train loss: 84.6354]
+Mon 11 May 2026 10:30:05 INFO  epoch 3 evaluating [time: 12.18s, valid_score: 0.178400]
+Mon 11 May 2026 10:30:05 INFO  valid result: 
+recall@5 : 0.2294
+recall@10 : 0.2699
+recall@15 : 0.2926
+recall@20 : 0.3087
+precision@5 : 0.0459
+precision@10 : 0.027
+precision@15 : 0.0195
+precision@20 : 0.0154
+mrr@5 : 0.173
+mrr@10 : 0.1784
+mrr@15 : 0.1802
+mrr@20 : 0.1811
+map@5 : 0.173
+map@10 : 0.1784
+map@15 : 0.1802
+map@20 : 0.1811
+hit@5 : 0.2294
+hit@10 : 0.2699
+hit@15 : 0.2926
+hit@20 : 0.3087
+ndcg@5 : 0.1871
+ndcg@10 : 0.2002
+ndcg@15 : 0.2062
+ndcg@20 : 0.21
+averagepopularity@5 : 323.0722
+averagepopularity@10 : 301.9694
+averagepopularity@15 : 291.2061
+averagepopularity@20 : 283.0998
+itemcoverage@5 : 0.2368
+itemcoverage@10 : 0.2835
+itemcoverage@15 : 0.3131
+itemcoverage@20 : 0.335
+giniindex@5 : 0.9663
+giniindex@10 : 0.9647
+giniindex@15 : 0.964
+giniindex@20 : 0.9638
+Mon 11 May 2026 10:30:07 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:31:34 INFO  epoch 4 training [time: 87.00s, train loss: 61.8704]
+Mon 11 May 2026 10:31:46 INFO  epoch 4 evaluating [time: 12.26s, valid_score: 0.188500]
+Mon 11 May 2026 10:31:46 INFO  valid result: 
+recall@5 : 0.243
+recall@10 : 0.2876
+recall@15 : 0.3124
+recall@20 : 0.329
+precision@5 : 0.0486
+precision@10 : 0.0288
+precision@15 : 0.0208
+precision@20 : 0.0164
+mrr@5 : 0.1826
+mrr@10 : 0.1885
+mrr@15 : 0.1905
+mrr@20 : 0.1914
+map@5 : 0.1826
+map@10 : 0.1885
+map@15 : 0.1905
+map@20 : 0.1914
+hit@5 : 0.243
+hit@10 : 0.2876
+hit@15 : 0.3124
+hit@20 : 0.329
+ndcg@5 : 0.1977
+ndcg@10 : 0.2121
+ndcg@15 : 0.2186
+ndcg@20 : 0.2226
+averagepopularity@5 : 290.6926
+averagepopularity@10 : 276.8386
+averagepopularity@15 : 268.5669
+averagepopularity@20 : 261.4999
+itemcoverage@5 : 0.2741
+itemcoverage@10 : 0.3306
+itemcoverage@15 : 0.3647
+itemcoverage@20 : 0.3887
+giniindex@5 : 0.9588
+giniindex@10 : 0.9565
+giniindex@15 : 0.9557
+giniindex@20 : 0.9553
+Mon 11 May 2026 10:31:48 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:33:14 INFO  epoch 5 training [time: 86.28s, train loss: 46.1400]
+Mon 11 May 2026 10:33:26 INFO  epoch 5 evaluating [time: 12.24s, valid_score: 0.196400]
+Mon 11 May 2026 10:33:26 INFO  valid result: 
+recall@5 : 0.2547
+recall@10 : 0.3027
+recall@15 : 0.3286
+recall@20 : 0.346
+precision@5 : 0.0509
+precision@10 : 0.0303
+precision@15 : 0.0219
+precision@20 : 0.0173
+mrr@5 : 0.19
+mrr@10 : 0.1964
+mrr@15 : 0.1984
+mrr@20 : 0.1994
+map@5 : 0.19
+map@10 : 0.1964
+map@15 : 0.1984
+map@20 : 0.1994
+hit@5 : 0.2547
+hit@10 : 0.3027
+hit@15 : 0.3286
+hit@20 : 0.346
+ndcg@5 : 0.2061
+ndcg@10 : 0.2216
+ndcg@15 : 0.2285
+ndcg@20 : 0.2326
+averagepopularity@5 : 273.4569
+averagepopularity@10 : 260.1062
+averagepopularity@15 : 251.5701
+averagepopularity@20 : 244.926
+itemcoverage@5 : 0.3078
+itemcoverage@10 : 0.3712
+itemcoverage@15 : 0.4082
+itemcoverage@20 : 0.4349
+giniindex@5 : 0.9517
+giniindex@10 : 0.9489
+giniindex@15 : 0.9479
+giniindex@20 : 0.9473
+Mon 11 May 2026 10:33:28 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:34:54 INFO  epoch 6 training [time: 85.85s, train loss: 34.9393]
+Mon 11 May 2026 10:35:06 INFO  epoch 6 evaluating [time: 12.28s, valid_score: 0.203700]
+Mon 11 May 2026 10:35:06 INFO  valid result: 
+recall@5 : 0.2652
+recall@10 : 0.3149
+recall@15 : 0.3422
+recall@20 : 0.3599
+precision@5 : 0.053
+precision@10 : 0.0315
+precision@15 : 0.0228
+precision@20 : 0.018
+mrr@5 : 0.197
+mrr@10 : 0.2037
+mrr@15 : 0.2059
+mrr@20 : 0.2068
+map@5 : 0.197
+map@10 : 0.2037
+map@15 : 0.2059
+map@20 : 0.2068
+hit@5 : 0.2652
+hit@10 : 0.3149
+hit@15 : 0.3422
+hit@20 : 0.3599
+ndcg@5 : 0.214
+ndcg@10 : 0.2301
+ndcg@15 : 0.2373
+ndcg@20 : 0.2415
+averagepopularity@5 : 251.4975
+averagepopularity@10 : 239.1613
+averagepopularity@15 : 232.2841
+averagepopularity@20 : 226.9487
+itemcoverage@5 : 0.3373
+itemcoverage@10 : 0.4049
+itemcoverage@15 : 0.4456
+itemcoverage@20 : 0.4739
+giniindex@5 : 0.945
+giniindex@10 : 0.9418
+giniindex@15 : 0.9405
+giniindex@20 : 0.9399
+Mon 11 May 2026 10:35:08 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:36:34 INFO  epoch 7 training [time: 86.16s, train loss: 26.8574]
+Mon 11 May 2026 10:36:47 INFO  epoch 7 evaluating [time: 12.42s, valid_score: 0.210600]
+Mon 11 May 2026 10:36:47 INFO  valid result: 
+recall@5 : 0.2748
+recall@10 : 0.3256
+recall@15 : 0.3537
+recall@20 : 0.3719
+precision@5 : 0.055
+precision@10 : 0.0326
+precision@15 : 0.0236
+precision@20 : 0.0186
+mrr@5 : 0.2038
+mrr@10 : 0.2106
+mrr@15 : 0.2128
+mrr@20 : 0.2138
+map@5 : 0.2038
+map@10 : 0.2106
+map@15 : 0.2128
+map@20 : 0.2138
+hit@5 : 0.2748
+hit@10 : 0.3256
+hit@15 : 0.3537
+hit@20 : 0.3719
+ndcg@5 : 0.2215
+ndcg@10 : 0.2379
+ndcg@15 : 0.2454
+ndcg@20 : 0.2497
+averagepopularity@5 : 231.9879
+averagepopularity@10 : 223.7288
+averagepopularity@15 : 218.6225
+averagepopularity@20 : 214.3998
+itemcoverage@5 : 0.3636
+itemcoverage@10 : 0.4358
+itemcoverage@15 : 0.479
+itemcoverage@20 : 0.5082
+giniindex@5 : 0.9382
+giniindex@10 : 0.9348
+giniindex@15 : 0.9333
+giniindex@20 : 0.9326
+Mon 11 May 2026 10:36:49 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:38:14 INFO  epoch 8 training [time: 85.46s, train loss: 20.8565]
+Mon 11 May 2026 10:38:26 INFO  epoch 8 evaluating [time: 12.30s, valid_score: 0.215800]
+Mon 11 May 2026 10:38:26 INFO  valid result: 
+recall@5 : 0.282
+recall@10 : 0.3344
+recall@15 : 0.3632
+recall@20 : 0.3818
+precision@5 : 0.0564
+precision@10 : 0.0334
+precision@15 : 0.0242
+precision@20 : 0.0191
+mrr@5 : 0.2088
+mrr@10 : 0.2158
+mrr@15 : 0.2181
+mrr@20 : 0.2191
+map@5 : 0.2088
+map@10 : 0.2158
+map@15 : 0.2181
+map@20 : 0.2191
+hit@5 : 0.282
+hit@10 : 0.3344
+hit@15 : 0.3632
+hit@20 : 0.3818
+ndcg@5 : 0.227
+ndcg@10 : 0.244
+ndcg@15 : 0.2516
+ndcg@20 : 0.256
+averagepopularity@5 : 222.4198
+averagepopularity@10 : 214.3262
+averagepopularity@15 : 209.3263
+averagepopularity@20 : 205.0678
+itemcoverage@5 : 0.3868
+itemcoverage@10 : 0.463
+itemcoverage@15 : 0.5083
+itemcoverage@20 : 0.5396
+giniindex@5 : 0.9323
+giniindex@10 : 0.9285
+giniindex@15 : 0.9268
+giniindex@20 : 0.9259
+Mon 11 May 2026 10:38:28 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:39:54 INFO  epoch 9 training [time: 85.74s, train loss: 16.3862]
+Mon 11 May 2026 10:40:06 INFO  epoch 9 evaluating [time: 12.39s, valid_score: 0.220800]
+Mon 11 May 2026 10:40:06 INFO  valid result: 
+recall@5 : 0.2893
+recall@10 : 0.3424
+recall@15 : 0.3709
+recall@20 : 0.3899
+precision@5 : 0.0579
+precision@10 : 0.0342
+precision@15 : 0.0247
+precision@20 : 0.0195
+mrr@5 : 0.2137
+mrr@10 : 0.2208
+mrr@15 : 0.2231
+mrr@20 : 0.2241
+map@5 : 0.2137
+map@10 : 0.2208
+map@15 : 0.2231
+map@20 : 0.2241
+hit@5 : 0.2893
+hit@10 : 0.3424
+hit@15 : 0.3709
+hit@20 : 0.3899
+ndcg@5 : 0.2325
+ndcg@10 : 0.2497
+ndcg@15 : 0.2573
+ndcg@20 : 0.2618
+averagepopularity@5 : 210.2454
+averagepopularity@10 : 202.9254
+averagepopularity@15 : 198.3516
+averagepopularity@20 : 194.4263
+itemcoverage@5 : 0.4078
+itemcoverage@10 : 0.4887
+itemcoverage@15 : 0.5342
+itemcoverage@20 : 0.567
+giniindex@5 : 0.9265
+giniindex@10 : 0.9223
+giniindex@15 : 0.9206
+giniindex@20 : 0.9195
+Mon 11 May 2026 10:40:08 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:41:34 INFO  epoch 10 training [time: 85.60s, train loss: 13.0250]
+Mon 11 May 2026 10:41:46 INFO  epoch 10 evaluating [time: 12.33s, valid_score: 0.225100]
+Mon 11 May 2026 10:41:46 INFO  valid result: 
+recall@5 : 0.2946
+recall@10 : 0.3487
+recall@15 : 0.3777
+recall@20 : 0.3971
+precision@5 : 0.0589
+precision@10 : 0.0349
+precision@15 : 0.0252
+precision@20 : 0.0199
+mrr@5 : 0.2179
+mrr@10 : 0.2251
+mrr@15 : 0.2274
+mrr@20 : 0.2285
+map@5 : 0.2179
+map@10 : 0.2251
+map@15 : 0.2274
+map@20 : 0.2285
+hit@5 : 0.2946
+hit@10 : 0.3487
+hit@15 : 0.3777
+hit@20 : 0.3971
+ndcg@5 : 0.237
+ndcg@10 : 0.2545
+ndcg@15 : 0.2622
+ndcg@20 : 0.2668
+averagepopularity@5 : 199.9712
+averagepopularity@10 : 193.7499
+averagepopularity@15 : 189.7503
+averagepopularity@20 : 186.3366
+itemcoverage@5 : 0.4268
+itemcoverage@10 : 0.5102
+itemcoverage@15 : 0.5585
+itemcoverage@20 : 0.5927
+giniindex@5 : 0.921
+giniindex@10 : 0.9166
+giniindex@15 : 0.9146
+giniindex@20 : 0.9133
+Mon 11 May 2026 10:41:48 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:43:14 INFO  epoch 11 training [time: 85.91s, train loss: 10.4694]
+Mon 11 May 2026 10:43:26 INFO  epoch 11 evaluating [time: 12.34s, valid_score: 0.228900]
+Mon 11 May 2026 10:43:26 INFO  valid result: 
+recall@5 : 0.2996
+recall@10 : 0.354
+recall@15 : 0.3837
+recall@20 : 0.4033
+precision@5 : 0.0599
+precision@10 : 0.0354
+precision@15 : 0.0256
+precision@20 : 0.0202
+mrr@5 : 0.2216
+mrr@10 : 0.2289
+mrr@15 : 0.2313
+mrr@20 : 0.2324
+map@5 : 0.2216
+map@10 : 0.2289
+map@15 : 0.2313
+map@20 : 0.2324
+hit@5 : 0.2996
+hit@10 : 0.354
+hit@15 : 0.3837
+hit@20 : 0.4033
+ndcg@5 : 0.2411
+ndcg@10 : 0.2587
+ndcg@15 : 0.2665
+ndcg@20 : 0.2712
+averagepopularity@5 : 195.994
+averagepopularity@10 : 188.329
+averagepopularity@15 : 183.7707
+averagepopularity@20 : 180.1748
+itemcoverage@5 : 0.4442
+itemcoverage@10 : 0.5311
+itemcoverage@15 : 0.5818
+itemcoverage@20 : 0.6163
+giniindex@5 : 0.9158
+giniindex@10 : 0.911
+giniindex@15 : 0.9089
+giniindex@20 : 0.9075
+Mon 11 May 2026 10:43:28 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:44:54 INFO  epoch 12 training [time: 85.53s, train loss: 8.5363]
+Mon 11 May 2026 10:45:06 INFO  epoch 12 evaluating [time: 12.38s, valid_score: 0.231800]
+Mon 11 May 2026 10:45:06 INFO  valid result: 
+recall@5 : 0.3046
+recall@10 : 0.3591
+recall@15 : 0.3884
+recall@20 : 0.4084
+precision@5 : 0.0609
+precision@10 : 0.0359
+precision@15 : 0.0259
+precision@20 : 0.0204
+mrr@5 : 0.2245
+mrr@10 : 0.2318
+mrr@15 : 0.2341
+mrr@20 : 0.2352
+map@5 : 0.2245
+map@10 : 0.2318
+map@15 : 0.2341
+map@20 : 0.2352
+hit@5 : 0.3046
+hit@10 : 0.3591
+hit@15 : 0.3884
+hit@20 : 0.4084
+ndcg@5 : 0.2445
+ndcg@10 : 0.2621
+ndcg@15 : 0.2699
+ndcg@20 : 0.2746
+averagepopularity@5 : 193.1177
+averagepopularity@10 : 184.5541
+averagepopularity@15 : 179.5959
+averagepopularity@20 : 175.8242
+itemcoverage@5 : 0.4602
+itemcoverage@10 : 0.5495
+itemcoverage@15 : 0.6016
+itemcoverage@20 : 0.6371
+giniindex@5 : 0.911
+giniindex@10 : 0.906
+giniindex@15 : 0.9037
+giniindex@20 : 0.9022
+Mon 11 May 2026 10:45:08 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:46:33 INFO  epoch 13 training [time: 85.54s, train loss: 7.0195]
+Mon 11 May 2026 10:46:46 INFO  epoch 13 evaluating [time: 12.41s, valid_score: 0.234500]
+Mon 11 May 2026 10:46:46 INFO  valid result: 
+recall@5 : 0.3077
+recall@10 : 0.3632
+recall@15 : 0.3928
+recall@20 : 0.4127
+precision@5 : 0.0615
+precision@10 : 0.0363
+precision@15 : 0.0262
+precision@20 : 0.0206
+mrr@5 : 0.2271
+mrr@10 : 0.2345
+mrr@15 : 0.2368
+mrr@20 : 0.2379
+map@5 : 0.2271
+map@10 : 0.2345
+map@15 : 0.2368
+map@20 : 0.2379
+hit@5 : 0.3077
+hit@10 : 0.3632
+hit@15 : 0.3928
+hit@20 : 0.4127
+ndcg@5 : 0.2472
+ndcg@10 : 0.2651
+ndcg@15 : 0.2729
+ndcg@20 : 0.2777
+averagepopularity@5 : 188.8637
+averagepopularity@10 : 180.6204
+averagepopularity@15 : 175.7323
+averagepopularity@20 : 171.9325
+itemcoverage@5 : 0.4754
+itemcoverage@10 : 0.5673
+itemcoverage@15 : 0.6202
+itemcoverage@20 : 0.6559
+giniindex@5 : 0.9065
+giniindex@10 : 0.9013
+giniindex@15 : 0.8987
+giniindex@20 : 0.8971
+Mon 11 May 2026 10:46:48 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:48:13 INFO  epoch 14 training [time: 85.76s, train loss: 5.8411]
+Mon 11 May 2026 10:48:26 INFO  epoch 14 evaluating [time: 12.39s, valid_score: 0.237100]
+Mon 11 May 2026 10:48:26 INFO  valid result: 
+recall@5 : 0.3107
+recall@10 : 0.3668
+recall@15 : 0.3968
+recall@20 : 0.4168
+precision@5 : 0.0621
+precision@10 : 0.0367
+precision@15 : 0.0265
+precision@20 : 0.0208
+mrr@5 : 0.2296
+mrr@10 : 0.2371
+mrr@15 : 0.2395
+mrr@20 : 0.2406
+map@5 : 0.2296
+map@10 : 0.2371
+map@15 : 0.2395
+map@20 : 0.2406
+hit@5 : 0.3107
+hit@10 : 0.3668
+hit@15 : 0.3968
+hit@20 : 0.4168
+ndcg@5 : 0.2498
+ndcg@10 : 0.268
+ndcg@15 : 0.2759
+ndcg@20 : 0.2807
+averagepopularity@5 : 184.2553
+averagepopularity@10 : 176.534
+averagepopularity@15 : 171.3983
+averagepopularity@20 : 167.6982
+itemcoverage@5 : 0.4884
+itemcoverage@10 : 0.5836
+itemcoverage@15 : 0.6374
+itemcoverage@20 : 0.673
+giniindex@5 : 0.9021
+giniindex@10 : 0.8967
+giniindex@15 : 0.8938
+giniindex@20 : 0.8921
+Mon 11 May 2026 10:48:28 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:49:54 INFO  epoch 15 training [time: 86.02s, train loss: 4.8892]
+Mon 11 May 2026 10:50:06 INFO  epoch 15 evaluating [time: 12.41s, valid_score: 0.239700]
+Mon 11 May 2026 10:50:06 INFO  valid result: 
+recall@5 : 0.3141
+recall@10 : 0.3702
+recall@15 : 0.4002
+recall@20 : 0.4204
+precision@5 : 0.0628
+precision@10 : 0.037
+precision@15 : 0.0267
+precision@20 : 0.021
+mrr@5 : 0.2321
+mrr@10 : 0.2397
+mrr@15 : 0.242
+mrr@20 : 0.2432
+map@5 : 0.2321
+map@10 : 0.2397
+map@15 : 0.242
+map@20 : 0.2432
+hit@5 : 0.3141
+hit@10 : 0.3702
+hit@15 : 0.4002
+hit@20 : 0.4204
+ndcg@5 : 0.2526
+ndcg@10 : 0.2707
+ndcg@15 : 0.2787
+ndcg@20 : 0.2835
+averagepopularity@5 : 177.797
+averagepopularity@10 : 170.0111
+averagepopularity@15 : 165.2924
+averagepopularity@20 : 161.7216
+itemcoverage@5 : 0.5023
+itemcoverage@10 : 0.598
+itemcoverage@15 : 0.6522
+itemcoverage@20 : 0.6886
+giniindex@5 : 0.8977
+giniindex@10 : 0.8921
+giniindex@15 : 0.8891
+giniindex@20 : 0.8872
+Mon 11 May 2026 10:50:08 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:51:34 INFO  epoch 16 training [time: 86.16s, train loss: 4.0886]
+Mon 11 May 2026 10:51:46 INFO  epoch 16 evaluating [time: 12.49s, valid_score: 0.241600]
+Mon 11 May 2026 10:51:46 INFO  valid result: 
+recall@5 : 0.3167
+recall@10 : 0.3731
+recall@15 : 0.4033
+recall@20 : 0.4234
+precision@5 : 0.0633
+precision@10 : 0.0373
+precision@15 : 0.0269
+precision@20 : 0.0212
+mrr@5 : 0.2341
+mrr@10 : 0.2416
+mrr@15 : 0.244
+mrr@20 : 0.2451
+map@5 : 0.2341
+map@10 : 0.2416
+map@15 : 0.244
+map@20 : 0.2451
+hit@5 : 0.3167
+hit@10 : 0.3731
+hit@15 : 0.4033
+hit@20 : 0.4234
+ndcg@5 : 0.2547
+ndcg@10 : 0.273
+ndcg@15 : 0.2809
+ndcg@20 : 0.2857
+averagepopularity@5 : 173.991
+averagepopularity@10 : 166.4974
+averagepopularity@15 : 161.8692
+averagepopularity@20 : 158.3691
+itemcoverage@5 : 0.5138
+itemcoverage@10 : 0.6114
+itemcoverage@15 : 0.6658
+itemcoverage@20 : 0.7023
+giniindex@5 : 0.8938
+giniindex@10 : 0.888
+giniindex@15 : 0.8849
+giniindex@20 : 0.8829
+Mon 11 May 2026 10:51:49 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:53:14 INFO  epoch 17 training [time: 85.89s, train loss: 3.4947]
+Mon 11 May 2026 10:53:27 INFO  epoch 17 evaluating [time: 12.48s, valid_score: 0.243500]
+Mon 11 May 2026 10:53:27 INFO  valid result: 
+recall@5 : 0.3189
+recall@10 : 0.3757
+recall@15 : 0.4063
+recall@20 : 0.4269
+precision@5 : 0.0638
+precision@10 : 0.0376
+precision@15 : 0.0271
+precision@20 : 0.0213
+mrr@5 : 0.2359
+mrr@10 : 0.2435
+mrr@15 : 0.2459
+mrr@20 : 0.247
+map@5 : 0.2359
+map@10 : 0.2435
+map@15 : 0.2459
+map@20 : 0.247
+hit@5 : 0.3189
+hit@10 : 0.3757
+hit@15 : 0.4063
+hit@20 : 0.4269
+ndcg@5 : 0.2566
+ndcg@10 : 0.275
+ndcg@15 : 0.2831
+ndcg@20 : 0.2879
+averagepopularity@5 : 175.3617
+averagepopularity@10 : 167.172
+averagepopularity@15 : 161.7385
+averagepopularity@20 : 157.6515
+itemcoverage@5 : 0.5242
+itemcoverage@10 : 0.6231
+itemcoverage@15 : 0.6792
+itemcoverage@20 : 0.716
+giniindex@5 : 0.8901
+giniindex@10 : 0.8842
+giniindex@15 : 0.8809
+giniindex@20 : 0.8787
+Mon 11 May 2026 10:53:29 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:54:55 INFO  epoch 18 training [time: 85.91s, train loss: 3.0071]
+Mon 11 May 2026 10:55:07 INFO  epoch 18 evaluating [time: 12.45s, valid_score: 0.245100]
+Mon 11 May 2026 10:55:07 INFO  valid result: 
+recall@5 : 0.3213
+recall@10 : 0.3781
+recall@15 : 0.4085
+recall@20 : 0.4289
+precision@5 : 0.0643
+precision@10 : 0.0378
+precision@15 : 0.0272
+precision@20 : 0.0214
+mrr@5 : 0.2375
+mrr@10 : 0.2451
+mrr@15 : 0.2475
+mrr@20 : 0.2487
+map@5 : 0.2375
+map@10 : 0.2451
+map@15 : 0.2475
+map@20 : 0.2487
+hit@5 : 0.3213
+hit@10 : 0.3781
+hit@15 : 0.4085
+hit@20 : 0.4289
+ndcg@5 : 0.2584
+ndcg@10 : 0.2768
+ndcg@15 : 0.2849
+ndcg@20 : 0.2897
+averagepopularity@5 : 166.9936
+averagepopularity@10 : 161.4301
+averagepopularity@15 : 157.252
+averagepopularity@20 : 153.8086
+itemcoverage@5 : 0.5347
+itemcoverage@10 : 0.635
+itemcoverage@15 : 0.6907
+itemcoverage@20 : 0.7271
+giniindex@5 : 0.8864
+giniindex@10 : 0.8805
+giniindex@15 : 0.877
+giniindex@20 : 0.8748
+Mon 11 May 2026 10:55:09 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:56:35 INFO  epoch 19 training [time: 86.28s, train loss: 2.5846]
+Mon 11 May 2026 10:56:48 INFO  epoch 19 evaluating [time: 12.46s, valid_score: 0.246600]
+Mon 11 May 2026 10:56:48 INFO  valid result: 
+recall@5 : 0.3229
+recall@10 : 0.38
+recall@15 : 0.411
+recall@20 : 0.4314
+precision@5 : 0.0646
+precision@10 : 0.038
+precision@15 : 0.0274
+precision@20 : 0.0216
+mrr@5 : 0.239
+mrr@10 : 0.2466
+mrr@15 : 0.2491
+mrr@20 : 0.2502
+map@5 : 0.239
+map@10 : 0.2466
+map@15 : 0.2491
+map@20 : 0.2502
+hit@5 : 0.3229
+hit@10 : 0.38
+hit@15 : 0.411
+hit@20 : 0.4314
+ndcg@5 : 0.2599
+ndcg@10 : 0.2784
+ndcg@15 : 0.2866
+ndcg@20 : 0.2914
+averagepopularity@5 : 164.9962
+averagepopularity@10 : 159.1932
+averagepopularity@15 : 154.8615
+averagepopularity@20 : 151.4395
+itemcoverage@5 : 0.5441
+itemcoverage@10 : 0.6454
+itemcoverage@15 : 0.7008
+itemcoverage@20 : 0.7368
+giniindex@5 : 0.8832
+giniindex@10 : 0.877
+giniindex@15 : 0.8735
+giniindex@20 : 0.8711
+Mon 11 May 2026 10:56:50 INFO  Saving current: saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
+Mon 11 May 2026 10:56:51 INFO  Loading model structure and parameters from saved/FPMC_30music__days[125-65]_pcount[25]_ptime[60-1000000]_length[2-100]_recent[100]/FPMC-May-11-2026_10-23-20.pth
