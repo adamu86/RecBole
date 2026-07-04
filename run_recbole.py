@@ -3,6 +3,7 @@ from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
 from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, SASRec, SRGNN
+from recbole.quick_start.quick_start import load_data_and_model
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from evaluate_playlist import evaluate_playlist
@@ -13,6 +14,7 @@ import shutil
 import json
 import gc
 import os
+import glob
 
 _original_torch_load = torch.load
 def _patched_torch_load(*args, **kwargs):
@@ -211,6 +213,46 @@ for model_name in model_dict.keys():
             logger.error(f"Finetune failed {model_name} on {dataset_name}: {e}")
             traceback.print_exc()
 
+# sama ewaluacja playlist
+for model_name in model_dict.keys():
+    for dataset_name in dataset_dict.keys():
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
+
+        save_dir = f"saved/{model_name}_{dataset_name}"
+        if not os.path.exists(save_dir):
+            logger.warning(f"Brak folderu {save_dir}, pomijam")
+            continue
+
+        checkpoint_files = glob.glob(glob.escape(save_dir) + f"/{model_name}-*.pth")
+        if not checkpoint_files:
+            logger.warning(f"Brak checkpointu w {save_dir}, pomijam")
+            continue
+
+        checkpoint_file = max(checkpoint_files, key=os.path.getmtime)
+
+        try:
+            config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
+                model_file=checkpoint_file
+            )
+
+            evaluate_playlist(
+                config=config,
+                model=model,
+                dataset=dataset,
+                train_data=train_data,
+                test_data=test_data
+            )
+
+            del model, dataset, train_data, valid_data, test_data
+            gc.collect()
+            torch.cuda.empty_cache()
+        except Exception as e:
+            logger.error(f"Failed {model_name} on {dataset_name}: {e}")
+            traceback.print_exc()
+            torch.cuda.empty_cache()
+            continue
 
 for dataset_name in dataset_dict.keys():
     os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
