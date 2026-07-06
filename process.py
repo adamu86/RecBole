@@ -302,7 +302,98 @@ def make_track_names_file():
 
     print(f"Saved {len(tracks):,} clean tracks to {output_path}")
 
-def get_dataset_name():
+def make_item_file(alias):
+    print("\nCreating .item file...")
+    
+    artist_tags_path = os.path.join("dataset", "artist_tags.tsv")
+    tracks_path = os.path.join("dataset", alias, "tracks.tsv")
+    output_path = os.path.join("dataset", alias, f"{alias}.item")
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    artist_tags = {}
+    if os.path.exists(artist_tags_path):
+        with open(artist_tags_path, "r", encoding="utf-8") as fin:
+            for line in fin:
+                parts = line.strip('\n').split("\t")
+                if len(parts) >= 4:
+                    track_id = parts[0]
+                    try:
+                        lastfm_json = json.loads(parts[2])
+                        mb_json = json.loads(parts[3])
+                        
+                        tags = []
+                        if lastfm_json and isinstance(lastfm_json[0], dict):
+                            tags.extend([str(t.get("tag", "")).replace(" ", "-") for t in lastfm_json if "tag" in t])
+                        
+                        if mb_json:
+                            if isinstance(mb_json[0], dict):
+                                tags.extend([str(t.get("tag", "")).replace(" ", "-") for t in mb_json if "tag" in t])
+                            else:
+                                tags.extend([str(t).replace(" ", "-") for t in mb_json])
+                                
+                        seen = set()
+                        unique_tags = []
+                        for tag in tags:
+                            if tag not in seen and tag:
+                                seen.add(tag)
+                                unique_tags.append(tag)
+                                
+                        artist_tags[track_id] = " ".join(unique_tags)
+                    except (json.JSONDecodeError, ValueError, KeyError, TypeError):
+                        pass
+                elif len(parts) == 3:
+                    track_id = parts[0]
+                    try:
+                        tags_json = json.loads(parts[2])
+                        if tags_json and isinstance(tags_json[0], dict):
+                            tags = [str(t.get("tag", "")).replace(" ", "-") for t in tags_json if "tag" in t]
+                        else:
+                            tags = [str(t).replace(" ", "-") for t in tags_json]
+                        artist_tags[track_id] = " ".join(tags)
+                    except (json.JSONDecodeError, ValueError, KeyError, TypeError):
+                        pass
+                elif len(parts) == 2:
+                    artist = parts[0]
+                    try:
+                        tags_json = json.loads(parts[1])
+                        if tags_json and isinstance(tags_json[0], dict):
+                            tags = [str(t.get("tag", "")).replace(" ", "-") for t in tags_json if "tag" in t]
+                        else:
+                            tags = [str(t).replace(" ", "-") for t in tags_json]
+                        artist_tags[artist] = " ".join(tags)
+                    except (json.JSONDecodeError, ValueError, KeyError, TypeError):
+                        pass
+    else:
+        print(f"Warning: {artist_tags_path} not found. All items will have 'unknown' tags.")
+
+    try:
+        total_tracks = get_line_count(tracks_path)
+    except Exception:
+        total_tracks = None
+
+    with open(tracks_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
+        fout.write("item_id:token\tgenre_tags:token_seq\n")
+        
+        for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
+            parts = line.strip('\n').split("\t")
+            if len(parts) >= 2:
+                track_id = parts[0]
+                track_info = parts[1]
+                
+                info_parts = track_info.split("/_/")
+                artist_name = info_parts[0]
+                
+                tags = artist_tags.get(track_id)
+                if tags is None:
+                    tags = artist_tags.get(artist_name, "")
+                    
+                if not tags:
+                    tags = "unknown"
+                
+                fout.write(f"{track_id}\t{tags}\n")
+
+def get_dataset_name(prefix="30music__"):
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
@@ -311,7 +402,7 @@ def get_dataset_name():
         f"recent[{MAX_SESSION_RECENT_TRACKS}]",
     ]
 
-    return "30music__" + "_".join(name_parts)
+    return prefix + "_".join(name_parts)
 
 if __name__ == "__main__":
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
@@ -330,6 +421,7 @@ if __name__ == "__main__":
     copy_processed_to_temp()
     filter_tracks_by_playcount()
     copy_processed_to_temp()
-    make_inter_file(get_dataset_name())
-    make_tracks_file(get_dataset_name())
+    make_inter_file(get_dataset_name("M30music__"))
+    make_tracks_file(get_dataset_name("M30music__"))
+    make_item_file(get_dataset_name("M30music__"))
     remove_temp_file()
