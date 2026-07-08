@@ -305,7 +305,7 @@ def make_track_names_file():
 def make_item_file(alias):
     print("\nCreating .item file...")
     
-    artist_tags_path = os.path.join("dataset", "artist_tags.tsv")
+    artist_tags_path = os.path.join("dataset", "artists_tags.tsv")
     tracks_path = os.path.join("dataset", alias, "tracks.tsv")
     output_path = os.path.join("dataset", alias, f"{alias}.item")
 
@@ -373,7 +373,7 @@ def make_item_file(alias):
         total_tracks = None
 
     with open(tracks_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        fout.write("item_id:token\tgenre_tags:token_seq\n")
+        fout.write("item_id:token\titem_tags:token_seq\n")
         
         for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
             parts = line.strip('\n').split("\t")
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     copy_processed_to_temp()
     filter_tracks_by_playcount()
     copy_processed_to_temp()
-    make_inter_file(get_dataset_name("M30music__"))
-    make_tracks_file(get_dataset_name("M30music__"))
-    make_item_file(get_dataset_name("M30music__"))
+    make_inter_file(get_dataset_name("30music__"))
+    make_tracks_file(get_dataset_name("30music__"))
+    make_item_file(get_dataset_name("30music__"))
     remove_temp_file()

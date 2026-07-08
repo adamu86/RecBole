@@ -22,13 +22,14 @@ const emit = defineEmits<{
       </li>
       <li
         v-else
-        v-for="recommendation in recommendations"
+        v-for="(recommendation, idx) in recommendations"
         :key="recommendation.id"
         @click="emit('add', recommendation)"
         class="group track"
       >
         <span class="rank">
-          {{ recommendation.rank }}
+          <!-- {{ recommendation.rank }} -->
+            {{ idx + 1 }}
         </span>
         <div class="breadcrumb-group">
           <div class="breadcrumb">ID: {{ recommendation.id }}</div>
@@ -42,6 +43,11 @@ const emit = defineEmits<{
           "
         >
           {{ recommendation.name }}
+          <div v-if="recommendation.tags?.length" class="flex flex-wrap gap-1 mt-2">
+            <span v-for="tag in recommendation.tags" :key="tag" class="px-1.5 py-0.5 text-xs bg-gray-300 text-gray-700 rounded">
+              {{ tag }}
+            </span>
+          </div>
         </span>
       </li>
     </TransitionGroup>

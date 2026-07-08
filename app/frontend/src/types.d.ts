@@ -2,6 +2,7 @@ declare global {
     type Track = { 
         id: string; 
         name: string; 
+        tags?: string[];
         rank?: number; 
         score?: number 
     };

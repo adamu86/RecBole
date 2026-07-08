@@ -80,7 +80,7 @@ def get_artist_tags_lastfm(artist_name: str) -> list[dict]:
         print(f"    [LastFM Error]: {e}")
     return []
 
-def fetch_artist_tags():
+def fetch_artist_tags(retry_empty=False, use_mb=False):
     existing_tags = {}
     if os.path.exists(ARTIST_TAGS_FILE):
         with open(ARTIST_TAGS_FILE, 'r', encoding='utf-8') as f:
@@ -91,6 +91,8 @@ def fetch_artist_tags():
                     try:
                         lastfm_tags = json.loads(parts[2])
                         mb_tags = json.loads(parts[3])
+                        if retry_empty and not lastfm_tags and not mb_tags:
+                            continue    
                         existing_tags[artist] = (lastfm_tags, mb_tags)
                     except json.JSONDecodeError:
                         pass
@@ -124,7 +126,7 @@ def fetch_artist_tags():
             lastfm_tags = []
             mb_tags = []
             
-            time.sleep(0.25)
+            time.sleep(0.21)
             lastfm_fetched = get_artist_tags_lastfm(artist_name) 
             if lastfm_fetched:
                 print(f"  -> Found {len(lastfm_fetched)} tags in Last.fm.")
@@ -132,32 +134,33 @@ def fetch_artist_tags():
             else:
                 print(f"  -> No tags in Last.fm.")
                 
-            time.sleep(1.05)
-            try:
-                mb_artist = find_artist_musicbrainz(artist_name)
-            except Exception as e:
-                print(f"  [MB Error] searching: {e}")
-                mb_artist = None    
-                
-            if mb_artist:
+            if use_mb:
                 time.sleep(1.05)
                 try:
-                    mb_fetched = get_artist_tags_musicbrainz(mb_artist["id"])
-                    if mb_fetched:
-                        lastfm_tag_names = {t["tag"] for t in lastfm_tags}
-                        added = 0
-                        for t in mb_fetched:
-                            if t not in lastfm_tag_names:
-                                mb_tags.append(t)
-                                added += 1
-                        print(f"  -> Added {added} supplemental tags from MusicBrainz.")
-                    else:
-                        print(f"  -> No supplemental tags in MusicBrainz.")
+                    mb_artist = find_artist_musicbrainz(artist_name)
                 except Exception as e:
-                    print(f"  [MB Error] fetching tags: {e}")
-            else:
-                print(f"  -> Artist not found in MusicBrainz.")
-                
+                    print(f"  [MB Error] searching: {e}")
+                    mb_artist = None    
+                    
+                if mb_artist:
+                    time.sleep(1.05)
+                    try:
+                        mb_fetched = get_artist_tags_musicbrainz(mb_artist["id"])
+                        if mb_fetched:
+                            lastfm_tag_names = {t["tag"] for t in lastfm_tags}
+                            added = 0
+                            for t in mb_fetched:
+                                if t not in lastfm_tag_names:
+                                    mb_tags.append(t)
+                                    added += 1
+                            print(f"  -> Added {added} supplemental tags from MusicBrainz.")
+                        else:
+                            print(f"  -> No supplemental tags in MusicBrainz.")
+                    except Exception as e:
+                        print(f"  [MB Error] fetching tags: {e}")
+                else:
+                    print(f"  -> Artist not found in MusicBrainz.")
+            
             existing_tags[artist_name] = (lastfm_tags, mb_tags)
             lastfm_json = json.dumps(lastfm_tags, ensure_ascii=False)
             mb_json = json.dumps(mb_tags, ensure_ascii=False)
@@ -214,6 +217,12 @@ def merge_artists():
             f.write(f"{track_id}\t{artist}\n")
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="Downloads tags for artists.")
+    parser.add_argument('--retry-empty', action='store_true', help="Wymusza ponowne pobranie dla artystów bez żadnych tagów.")
+    parser.add_argument('--use-mb', action='store_true', help="Pobieraj dodatkowe tagi z MusicBrainz (domyślnie wyłączone ze względu na stabilność/szybkość).")
+    args = parser.parse_args()
+
     if not os.path.exists(ARTISTS_FILE):
         merge_artists()
-    fetch_artist_tags()
+    fetch_artist_tags(retry_empty=args.retry_empty, use_mb=args.use_mb)

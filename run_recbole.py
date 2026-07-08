@@ -2,7 +2,7 @@ import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import FPMC, GRU4Rec, GRU4RecMod, NARM, STAMP, SASRec, SRGNN
+from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, SASRec, SRGNN
 from recbole.quick_start.quick_start import load_data_and_model
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
@@ -29,19 +29,12 @@ model_dict = {
     #     },
     #     'model': FPMC
     # },
-    # 'GRU4Rec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': GRU4Rec
-    # },
-    'GRU4RecMod': {
+    'GRU4Rec': {
         'parameter_dict': {
             'train_neg_sample_args': None,
             'neg_sampling': None
         },
-        'model': GRU4RecMod
+        'model': GRU4Rec
     },
     # 'NARM': {
     #     'parameter_dict': {
@@ -77,7 +70,7 @@ model_dict = {
 
 dataset_dir = Path("dataset")
 dataset_dict = {
-    f"M{p.name}": f"M{p.name}"
+    f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
     if p.is_dir()
 }

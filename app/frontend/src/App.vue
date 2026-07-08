@@ -29,7 +29,7 @@ import RecommendationsColumn from "./components/ColumnRecommendations.vue";
 import { onMounted, onUnmounted, watch, reactive, computed } from "vue";
 
 const availableTracks = reactive({
-  searchQuery: "Avicii",
+  searchQuery: "Scouting For Girls",
   items: [] as Track[],
   page: {
     current: 1,
@@ -56,7 +56,9 @@ const availableTracks = reactive({
         this.page.itemsLimit,
         this.searchQuery,
       );
-      if (data) this.items = data.tracks;
+      if (data) {
+        this.items = data.tracks;
+      }
     } finally {
       this.isFetching = false;
     }
@@ -71,6 +73,16 @@ watch(
 const search = () => {
   availableTracks.page.reset();
   if (availableTracks.page.current === 1) availableTracks.fetch();
+};
+
+const jaccard = (tags1: string[], tags2: string[]): number => {
+  const set1 = new Set(tags1);
+  const set2 = new Set(tags2);
+
+  const intersectionSize = [...set1].filter(tag => set2.has(tag)).length;
+  const unionSize = new Set([...set1, ...set2]).size;
+
+  return unionSize === 0 ? 0 : intersectionSize / unionSize;
 };
 
 const listeningHistory = reactive({
@@ -88,7 +100,7 @@ const recommendations = reactive({
   items: [] as Track[],
   interval: 5 as number,
   autoContinue: {
-    value: false as boolean,
+    value: true as boolean,
     toggle() {
       this.value = !this.value;
     },
@@ -107,7 +119,20 @@ const recommendations = reactive({
         listeningHistory.items.map((t: Track) => parseInt(t.id)),
         recommendations.topk,
       );
-      if (data) this.items = data.recommendations;
+      if (data) {
+        this.items = data.recommendations;
+        
+        for (const track of this.items) {
+            if (!track.tags || track.tags.length === 0) {
+              continue;
+            }
+            const tags = listeningHistory.items.map((track: Track) => track.tags).flat();
+            const jaccardScore = jaccard(tags, track.tags);
+            track.score = parseFloat(track.score) * (jaccardScore === 0 ? 1 : jaccardScore + 1);
+          }
+
+          this.items.sort((a, b) => (b.score || 0) - (a.score || 0));
+      }
     } finally {
       this.isFetching = false;
     }

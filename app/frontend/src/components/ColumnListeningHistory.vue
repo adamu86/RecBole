@@ -26,7 +26,14 @@ const emit = defineEmits<{
         <div class="breadcrumb-group">
           <div class="breadcrumb">ID: {{ track.id }}</div>
         </div>
-        {{ track.name }}
+        <span class="flex-1">
+          {{ track.name }}
+          <div v-if="track.tags?.length" class="flex flex-wrap gap-1 mt-2">
+            <span v-for="tag in track.tags" :key="tag" class="px-1.5 py-0.5 text-xs bg-gray-300 text-gray-700 rounded">
+              {{ tag }}
+            </span>
+          </div>
+        </span>
       </li>
     </TransitionGroup>
   </div>

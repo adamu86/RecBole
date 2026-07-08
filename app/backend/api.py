@@ -35,10 +35,12 @@ LOG_FILE = None
 MODEL_PATH = None
 DATASET_NAME = None
 TRACK_NAMES = {}
+TRACK_TAGS = {}
 
 class Track(BaseModel):
     id: str
     name: str
+    tags: Optional[list[str]] = None
     rank: Optional[int] = None
     score: Optional[float] = None
 
@@ -115,10 +117,26 @@ def load_dataset(config):
         df.columns = ["id", "name"]
         df["id"] = df["id"].astype(str)
         track_names = dict(zip(df["id"], df["name"]))
-    return dataset_name, track_names
+        
+    item_file = f"dataset/{dataset_name}/{dataset_name}.item"
+    track_tags = {}
+    if os.path.exists(item_file):
+        with open(item_file, 'r', encoding='utf-8') as f:
+            header = f.readline().strip().split('\t')
+            try:
+                id_idx = header.index('item_id:token')
+                tags_idx = header.index('item_tags:token_seq')
+                for line in f:
+                    parts = line.strip('\n').split('\t')
+                    if len(parts) > max(id_idx, tags_idx):
+                        track_tags[parts[id_idx]] = parts[tags_idx].split()
+            except ValueError:
+                pass
+                
+    return dataset_name, track_names, track_tags
 
 config, model, dataset, train_data, valid_data, test_data, MODEL_PATH = load_model()
-DATASET_NAME, TRACK_NAMES = load_dataset(config)
+DATASET_NAME, TRACK_NAMES, TRACK_TAGS = load_dataset(config)
 
 app = FastAPI()
 app.add_middleware(
@@ -201,9 +219,9 @@ def get_model():
 @app.post("/model", response_model=Status)
 def set_model(req: ModelRequest):
     global config, model, dataset, train_data, valid_data, test_data
-    global MODEL_PATH, DATASET_NAME, TRACK_NAMES
+    global MODEL_PATH, DATASET_NAME, TRACK_NAMES, TRACK_TAGS
     config, model, dataset, train_data, valid_data, test_data, MODEL_PATH = load_model(req.model_path)
-    DATASET_NAME, TRACK_NAMES = load_dataset(config)
+    DATASET_NAME, TRACK_NAMES, TRACK_TAGS = load_dataset(config)
     return Status(
         model=MODEL_PATH,
         dataset=DATASET_NAME
@@ -214,7 +232,7 @@ def get_tracks(req: TrackListRequest = Depends()):
     if not TRACK_NAMES:
         raise HTTPException(404, "No tracks data")
     tracks = [
-        Track(id=tid, name=name.replace("/_/", " - "))
+        Track(id=tid, name=name.replace("/_/", " - "), tags=TRACK_TAGS.get(tid))
         for tid, name in TRACK_NAMES.items()
     ]
     if req.search:
@@ -250,6 +268,7 @@ def recommend(req: RecommendationsRequest):
             rank=i + 1,
             id=dataset.id2token("item_id", idx.item()),
             name=TRACK_NAMES.get(dataset.id2token("item_id", idx.item()), "unknown").replace("/_/", " - "),
+            tags=TRACK_TAGS.get(dataset.id2token("item_id", idx.item())),
             score=round(score.item(), 6),
         )
         for i, (idx, score) in enumerate(zip(topk.indices[0], topk.values[0]))
@@ -262,3 +281,4 @@ def recommend(req: RecommendationsRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.backend.api:app", host="0.0.0.0", port=8000)
+    # uvicorn app.backend.api:app --host 0.0.0.0
