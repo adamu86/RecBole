@@ -36,3 +36,5 @@ process.sh
 run_model.py
 .env
 mod_scripts/c*
+
+backup/*

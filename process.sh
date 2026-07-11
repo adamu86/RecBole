@@ -14,4 +14,4 @@ for p in "${params[@]}"; do
     python process.py --days_from_max $from --days_to_max $to
 done
 
-python run_recbole.py
+# python run_recbole.py

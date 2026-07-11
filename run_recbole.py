@@ -29,13 +29,13 @@ model_dict = {
     #     },
     #     'model': FPMC
     # },
-    'GRU4Rec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': GRU4Rec
-    },
+    # 'GRU4Rec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': GRU4Rec
+    # },
     # 'NARM': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -50,14 +50,14 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
 
-    #     },
-    #     'model': SASRec
-    # },
+        },
+        'model': SASRec
+    },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -134,14 +134,6 @@ for model_name in model_dict.keys():
             with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
                 json.dump({"test_result": test_result}, f, indent=2)
 
-            # evaluate_playlist(
-            #     config=config,
-            #     model=model,
-            #     dataset=dataset,
-            #     train_data=train_data,
-            #     test_data=test_data
-            # )
-
             del model, trainer, dataset, train_data, valid_data, test_data
             gc.collect()
             torch.cuda.empty_cache()
@@ -151,7 +143,7 @@ for model_name in model_dict.keys():
             torch.cuda.empty_cache()
             continue
 
-# dataset_dict = dict(reversed(list(dataset_dict.items())))
+# # dataset_dict = dict(reversed(list(dataset_dict.items())))
 
 # # dokręcanie śruby
 # for model_name in model_dict.keys():
@@ -201,13 +193,13 @@ for model_name in model_dict.keys():
 #             with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
 #                 json.dump({"test_result": test_result}, f, indent=2)
 
-#             evaluate_playlist(
-#                 config=config,
-#                 model=model,
-#                 dataset=dataset,
-#                 train_data=train_data,
-#                 test_data=test_data
-#             )
+#             # evaluate_playlist(
+#             #     config=config,
+#             #     model=model,
+#             #     dataset=dataset,
+#             #     train_data=train_data,
+#             #     test_data=test_data
+#             # )
 
 #             del model, trainer, dataset, train_data, valid_data, test_data
 #             gc.collect()

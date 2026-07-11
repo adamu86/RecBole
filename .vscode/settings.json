@@ -54,6 +54,8 @@
     "recbole/model/knowledge*": true,
     "recbole/model/exlib*": true,
 
+    "backup": true,
+
     "recbole/properties/dataset/[a-zA-Z]*": true,
     "recbole/properties/model/ADMMSLIM.yaml": true,
     "recbole/properties/model/AFM.yaml": true,

@@ -616,8 +616,19 @@ class Trainer(AbstractTrainer):
             interaction, scores, positive_u, positive_i = eval_func(batched_data)
             
 
-            print(interaction, scores)
-            
+
+            # idx = 1
+
+            # session_id = interaction["session_id"][idx].item()
+            # length = interaction["item_length"][idx].item()
+
+            # history_ids = interaction["item_id_list"][idx][:length]
+            # target_id = interaction["item_id"][idx]
+
+            # print("\nsession_id:", session_id)
+            # print("\nhistoria:", history_ids)
+            # print("\ntarget:", target_id)
+
 
 
             if self.gpu_available and show_progress:

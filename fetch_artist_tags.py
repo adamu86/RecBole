@@ -20,10 +20,10 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 NETWORK = LastFMNetwork(api_key=api_key)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR = os.path.join(BASE_DIR, "dataset")
 ARTISTS_FILE = os.path.join(DATASET_DIR, "artists.tsv")
-ARTIST_TAGS_FILE = os.path.join(DATASET_DIR, "artists_tags.tsv")
+ARTIST_TAGS_FILE = os.path.join(DATASET_DIR, "artists_tagss.tsv")
 
 def normalize_tag(tag: str) -> str:
     tag = tag.casefold().strip()

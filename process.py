@@ -111,16 +111,15 @@ def initialize():
 
             session_playtime = session_stats["playtime"]
             session_user_id = session_objects["subjects"][0]["id"]
-            session_tracks = [
-                {
-                    "id": st["id"],
-                    "ps": st["playstart"],
-                    # "pt": st["playtime"],
-                    # "pr": st.get("playratio"),
-                    # "ac": st.get("action")
-                }
-                for st in session_objects["objects"]
-            ]
+            session_tracks = []
+            last_seen_ps = {}
+            for st in session_objects["objects"]:
+                track_id = st["id"]
+                ps = st["playstart"]
+                if track_id in last_seen_ps and abs(ps - last_seen_ps[track_id]) < 10:
+                    continue
+                last_seen_ps[track_id] = ps
+                session_tracks.append({"id": track_id, "ps": ps})
 
             if not (MIN_SESSION_PLAYTIME <= session_playtime <= MAX_SESSION_PLAYTIME):
                 continue

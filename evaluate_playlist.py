@@ -62,18 +62,6 @@ def ItemCoverage(topk_indices_all_sessions, total_items, k):
     denominator = total_items
     return numerator / denominator
 
-def GiniIndex(topk_indices_all_sessions, total_items, k):
-    counts = np.zeros(total_items)
-    for topk_indices in topk_indices_all_sessions:
-        for idx in topk_indices[:k]:
-            counts[int(idx)] += 1
-    P_i = np.sort(counts)
-    I = total_items
-    i = np.arange(1, I + 1)
-    numerator = np.sum((2 * i - I - 1) * P_i)
-    denominator = I * np.sum(P_i)
-    return numerator / denominator if denominator > 0 else 0.0
-
 def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, config=None, model=None, dataset=None, train_data=None, test_data=None):   
     if model_file is not None and config is None:
         print(f"Loading model: {model_file}")
@@ -164,8 +152,7 @@ def evaluate_playlist(model_file=None, k_list=K_LIST, metrics=ACCURACY_METRICS, 
     total_items = dataset.item_num
     DIVERSITY_METRICS = {
         'averagepopularity': lambda k: np.mean([AveragePopularity(ti, item_popularity, k) for ti in all_topk]),
-        'itemcoverage': lambda k: ItemCoverage(all_topk, total_items, k),
-        'giniindex': lambda k: GiniIndex(all_topk, total_items, k),
+        'itemcoverage': lambda k: ItemCoverage(all_topk, total_items, k)
     }
     for metric, fn in DIVERSITY_METRICS.items():
         for k in k_list:
