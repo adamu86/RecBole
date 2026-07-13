@@ -140,7 +140,49 @@ def analyze_sessions(file_path, output_dir):
     plt.savefig(os.path.join(output_dir, '4_session_durations.png'), dpi=300)
     plt.close()
 
+    # ---------------------------------------------------------
+    # 5. Kubełkowe statystyki popularności (Bucket Statistics)
+    # ---------------------------------------------------------
+    print("Generating popularity bucket statistics...")
+    bins = [0, 24, 50, 100, 500, 1000, float('inf')] # Dodano 0-24
+    labels = ['<25', '25-50', '51-100', '101-500', '501-1000', '1000+']
+    
+    counts_series = pd.Series(list(item_counts.values()))
+    
+    # Create buckets
+    buckets = pd.cut(counts_series, bins=bins, labels=labels, right=True)
+    bucket_counts = buckets.value_counts().sort_index()
+    bucket_interactions = counts_series.groupby(buckets, observed=False).sum()
+    
+    plt.figure(figsize=(10, 6))
+    ax = sns.barplot(x=bucket_counts.index, y=bucket_counts.values, hue=bucket_counts.index, palette="viridis", legend=False)
+    plt.title('Rozkład utworów w kubełkach popularności (Liczba odtworzeń)', fontsize=14, pad=15)
+    plt.xlabel('Przedziały liczby odtworzeń (Kubełki)', fontsize=12)
+    plt.ylabel('Liczba unikalnych utworów', fontsize=12)
+    
+    # Add labels on top of bars
+    for i, p in enumerate(ax.patches):
+        ax.annotate(f"{int(p.get_height()):,}", 
+                    (p.get_x() + p.get_width() / 2., p.get_height()), 
+                    ha='center', va='bottom', fontsize=10)
+        
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, '5_item_popularity_buckets.png'), dpi=300)
+    plt.close()
+
     print(f"\nAnaliza zakończona! Wykresy zostały zapisane w folderze: {os.path.abspath(output_dir)}")
+    
+    # Print Bucket Stats to console
+    print("\n" + "=" * 80)
+    print("--- STATYSTYKI KUBEŁKOWE (Popularność utworów) ---")
+    print(f"{'Kubełek (odtworzenia)':<25} | {'Liczba utworów':<15} | {'Suma interakcji':<15} | {'% wszystkich interakcji'}")
+    print("-" * 80)
+    for label in labels:
+        n_items = bucket_counts[label]
+        n_inter = bucket_interactions[label]
+        pct = (n_inter / total_interactions) * 100 if total_interactions > 0 else 0
+        print(f"{label:<25} | {n_items:<15,} | {int(n_inter):<15,} | {pct:.2f}%")
+    print("=" * 80)
     print("-" * 50)
     print(f"PODSUMOWANIE STATYSTYK ZBIORU:")
     print(f"  Liczba sesji ogółem:      {len(session_lengths):,}")
