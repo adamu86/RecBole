@@ -33,8 +33,8 @@ clip_grad_norm: ~               # (dict) The args of clip_grad_norm_ which will 
 weight_decay: 0.0               # (float) The weight decay value (L2 penalty) for optimizers.
 loss_decimal_place: 4           # (int) The decimal place of training loss.
 require_pow: False              # (bool) Whether or not to perform power operation in EmbLoss.
-enable_amp: False               # (bool) Whether or not to use mixed precision training.
-enable_scaler: False            # (bool) Whether or not to use GradScaler in mixed precision training.
+enable_amp: True               # (bool) Whether or not to use mixed precision training.
+enable_scaler: True            # (bool) Whether or not to use GradScaler in mixed precision training.
 transform: ~                    # (str) The transform operation for batch data process.
 
 # Evaluation Settings

@@ -15,3 +15,5 @@ for p in "${params[@]}"; do
 done
 
 # python run_recbole.py
+
+# sed -i 's/\r$//' process.sh

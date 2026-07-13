@@ -7,6 +7,8 @@ import subprocess
 from tqdm import tqdm
 from collections import Counter
 from urllib.parse import unquote_plus
+import pandas as pd
+import numpy as np
 
 DATA_FILE = "sessions"
 DATA_PATH_RAW = "dataset_raw/"
@@ -57,8 +59,18 @@ if args.max_session_playtime is not None:
 if args.max_session_recent_tracks is not None:
     MAX_SESSION_RECENT_TRACKS = args.max_session_recent_tracks
 
+def safe_copy(src, dst):
+    if os.path.exists(dst):
+        try:
+            import stat
+            os.chmod(dst, stat.S_IWRITE)
+            os.remove(dst)
+        except Exception:
+            pass
+    shutil.copyfile(src, dst)
+
 def copy_processed_to_temp():
-    shutil.copy(
+    safe_copy(
         get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
         get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
     )
@@ -109,9 +121,8 @@ def initialize():
             except (json.JSONDecodeError, ValueError, IndexError):
                 continue
 
-            session_playtime = session_stats["playtime"]
             session_user_id = session_objects["subjects"][0]["id"]
-            session_tracks = []
+            raw_tracks = []
             last_seen_ps = {}
             for st in session_objects["objects"]:
                 track_id = st["id"]
@@ -119,14 +130,43 @@ def initialize():
                 if track_id in last_seen_ps and abs(ps - last_seen_ps[track_id]) < 10:
                     continue
                 last_seen_ps[track_id] = ps
-                session_tracks.append({"id": track_id, "ps": ps})
+                raw_tracks.append({"id": track_id, "ps": ps})
 
-            if not (MIN_SESSION_PLAYTIME <= session_playtime <= MAX_SESSION_PLAYTIME):
+            if not raw_tracks:
                 continue
 
-            fout.write(f"{session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(session_tracks, separators=(',', ':'))}\n")
+            # Sort tracks chronologically
+            raw_tracks.sort(key=lambda x: x["ps"])
+            
+            sub_sessions = []
+            current_sub = [raw_tracks[0]]
+            
+            # Split if inactivity > 30 minutes (1800 seconds)
+            for i in range(1, len(raw_tracks)):
+                curr_track = raw_tracks[i]
+                prev_track = current_sub[-1]
+                
+                if curr_track["ps"] - prev_track["ps"] > 1800:
+                    sub_sessions.append(current_sub)
+                    current_sub = [curr_track]
+                else:
+                    current_sub.append(curr_track)
+            sub_sessions.append(current_sub)
 
-    shutil.copy(
+            # Write out valid sub-sessions
+            for sub_idx, sub_session in enumerate(sub_sessions):
+                if not (MIN_SESSION_LENGTH <= len(sub_session) <= MAX_SESSION_LENGTH):
+                    continue
+                
+                # Re-calculate playtime for the sub-session
+                playtime = sub_session[-1]["ps"] - sub_session[0]["ps"]
+                if not (MIN_SESSION_PLAYTIME <= playtime <= MAX_SESSION_PLAYTIME):
+                    continue
+
+                new_session_id = f"{session_id}_{sub_idx}" if len(sub_sessions) > 1 else str(session_id)
+                fout.write(f"{new_session_id}\t{session_timestamp}\t{session_user_id}\t{json.dumps(sub_session, separators=(',', ':'))}\n")
+
+    safe_copy(
         get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
         get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     )
@@ -403,12 +443,115 @@ def get_dataset_name(prefix="30music__"):
 
     return prefix + "_".join(name_parts)
 
+def split_sessions_temporal(df, session_field, time_field, ratios):
+    """Split entire sessions by temporal order."""
+    session_start_times = df.groupby(session_field)[time_field].min()
+    session_start_times = session_start_times.sort_values()
+    session_ids_sorted = session_start_times.index.values
+
+    n_sessions = len(session_ids_sorted)
+    n_train = int(n_sessions * ratios[0])
+    n_valid = int(n_sessions * ratios[1])
+
+    train_sessions = set(session_ids_sorted[:n_train])
+    valid_sessions = set(session_ids_sorted[n_train : n_train + n_valid])
+    test_sessions = set(session_ids_sorted[n_train + n_valid :])
+
+    return train_sessions, valid_sessions, test_sessions
+
+def augment_sessions(df, session_field, item_field, time_field, max_seq_len):
+    """Create sequential augmentation (item_id_list) from raw interactions."""
+    df_sorted = df.sort_values([session_field, time_field])
+    augmented_rows = []
+    
+    for session_id, group in tqdm(df_sorted.groupby(session_field), desc="Augmenting sequences"):
+        items = group[item_field].tolist()
+        times = group[time_field].tolist()
+        
+        for i in range(1, len(items)):
+            target_item = items[i]
+            target_time = times[i]
+            seq = items[max(0, i - max_seq_len):i]
+            
+            seq_str = " ".join(map(str, seq))
+            
+            augmented_rows.append({
+                session_field: session_id,
+                item_field: target_item,
+                "item_id_list": seq_str,
+                time_field: target_time
+            })
+            
+    return pd.DataFrame(augmented_rows)
+
+def write_benchmark_inter(df, output_path, session_field, item_field, time_field):
+    """Write DataFrame back to .inter format."""
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"{session_field}:token\t{item_field}:token\titem_id_list:token_seq\t{time_field}:float\n")
+        
+        for _, row in df.iterrows():
+            s_id = row[session_field]
+            i_id = row[item_field]
+            i_list = row["item_id_list"]
+            t = row[time_field]
+            f.write(f"{s_id}\t{i_id}\t{i_list}\t{t}\n")
+
+def make_benchmark_splits(alias, ratios=[0.8, 0.1, 0.1], max_seq_len=100):
+    print(f"\nCreating benchmark splits (Train/Valid/Test) for {alias}...")
+    
+    inter_path = os.path.join("dataset", alias, f"{alias}.inter")
+    if not os.path.isfile(inter_path):
+        print(f"File not found: {inter_path}")
+        return
+
+    with open(inter_path, "r", encoding="utf-8") as f:
+        header_line = f.readline().strip()
+
+    columns_with_types = header_line.split("\t")
+    col_names = [c.split(":")[0] for c in columns_with_types]
+
+    df = pd.read_csv(inter_path, sep="\t", header=0, names=col_names, skiprows=1, dtype=str)
+
+    if "timestamp" in df.columns:
+        df["timestamp"] = df["timestamp"].astype(float)
+
+    print(f"  Total interactions: {len(df):,}")
+    print(f"  Total sessions:     {df['session_id'].nunique():,}")
+
+    print(f"\n--- Splitting sessions temporally ---")
+    train_sessions, valid_sessions, test_sessions = split_sessions_temporal(df, "session_id", "timestamp", ratios)
+    print(f"  Train sessions: {len(train_sessions):,}")
+    print(f"  Valid sessions: {len(valid_sessions):,}")
+    print(f"  Test sessions:  {len(test_sessions):,}")
+
+    train_df = df[df["session_id"].isin(train_sessions)]
+    valid_df = df[df["session_id"].isin(valid_sessions)]
+    test_df = df[df["session_id"].isin(test_sessions)]
+
+    print(f"\n--- Augmenting sequences (max_seq_len={max_seq_len}) ---")
+    train_aug = augment_sessions(train_df, "session_id", "item_id", "timestamp", max_seq_len)
+    valid_aug = augment_sessions(valid_df, "session_id", "item_id", "timestamp", max_seq_len)
+    test_aug = augment_sessions(test_df, "session_id", "item_id", "timestamp", max_seq_len)
+
+    print(f"  Train augmented rows: {len(train_aug):,}")
+    print(f"  Valid augmented rows: {len(valid_aug):,}")
+    print(f"  Test augmented rows:  {len(test_aug):,}")
+
+    print(f"\n--- Writing benchmark files ---")
+    output_dir = os.path.join("dataset", alias)
+    splits = [("train", train_aug), ("valid", valid_aug), ("test", test_aug)]
+    
+    for split_name, split_df in splits:
+        output_path = os.path.join(output_dir, f"{alias}.{split_name}.inter")
+        write_benchmark_inter(split_df, output_path, "session_id", "item_id", "timestamp")
+        print(f"  {split_name}: {os.path.basename(output_path)} ({len(split_df):,} rows)")
+
 if __name__ == "__main__":
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, DATA_FILE)):
         initialize()
         filter_by_time_window(365, 65)
         os.remove(get_data_file_path(DATA_PATH_RAW, DATA_FILE))
-        shutil.copy(
+        safe_copy(
             get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
             get_data_file_path(DATA_PATH_RAW, DATA_FILE)
         )
@@ -423,4 +566,5 @@ if __name__ == "__main__":
     make_inter_file(get_dataset_name("30music__"))
     make_tracks_file(get_dataset_name("30music__"))
     make_item_file(get_dataset_name("30music__"))
+    make_benchmark_splits(get_dataset_name("30music__"))
     remove_temp_file()

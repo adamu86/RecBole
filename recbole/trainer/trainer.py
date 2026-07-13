@@ -145,6 +145,11 @@ class Trainer(AbstractTrainer):
         self.item_tensor = None
         self.tot_item_num = None
 
+        # Tag-based Jaccard reranking parameters
+        self.rerank_topk = self.config.final_config_dict.get("rerank_topk", None)
+        self.rerank_weight = self.config.final_config_dict.get("rerank_weight", 1.0)
+        self.item_tag_sets = None
+
     def _build_optimizer(self, **kwargs):
         r"""Init the Optimizer
 
@@ -599,6 +604,19 @@ class Trainer(AbstractTrainer):
         if self.config["eval_type"] == EvaluatorType.RANKING:
             self.tot_item_num = eval_data._dataset.item_num
 
+        # Build item tag sets for Jaccard reranking (once per evaluation)
+        rerank_enabled = False
+        if self.rerank_topk is not None and hasattr(eval_data, '_dataset'):
+            dataset = eval_data._dataset
+            if (hasattr(dataset, 'item_feat') and dataset.item_feat is not None
+                    and 'item_tags' in dataset.item_feat):
+                self._build_item_tag_sets(dataset)
+                rerank_enabled = True
+                self.logger.info(
+                    f"Tag-based Jaccard reranking enabled: "
+                    f"topk={self.rerank_topk}, weight={self.rerank_weight}"
+                )
+
         iter_data = (
             tqdm(
                 eval_data,
@@ -614,12 +632,12 @@ class Trainer(AbstractTrainer):
         for batch_idx, batched_data in enumerate(iter_data):
             num_sample += len(batched_data)
             interaction, scores, positive_u, positive_i = eval_func(batched_data)
-            
 
-
-        
-
-
+            # Apply tag-based Jaccard reranking to scores before evaluation
+            if rerank_enabled and "item_id_list" in interaction:
+                scores = self._rerank_scores(
+                    scores, self._compute_session_tag_profile(interaction)
+                )
 
             if self.gpu_available and show_progress:
                 iter_data.set_postfix_str(
@@ -677,6 +695,104 @@ class Trainer(AbstractTrainer):
                 result = result.unsqueeze(0)
             result_list.append(result)
         return torch.cat(result_list, dim=0)
+
+    def _build_item_tag_sets(self, dataset):
+        """Build per-item tag sets from dataset.item_feat for Jaccard reranking.
+
+        Converts the item_tags token_seq tensor into a list of Python sets,
+        indexed by internal item_id, for efficient Jaccard similarity computation.
+
+        Args:
+            dataset: The RecBole dataset object with item_feat containing item_tags.
+        """
+        item_tags_tensor = dataset.item_feat["item_tags"]  # (num_items, max_tag_len)
+        self.item_tag_sets = []
+        for i in range(item_tags_tensor.size(0)):
+            tags = item_tags_tensor[i]
+            tag_set = set(tags[tags != 0].tolist())  # exclude padding (0)
+            self.item_tag_sets.append(tag_set)
+        avg_tags = sum(len(s) for s in self.item_tag_sets) / max(len(self.item_tag_sets), 1)
+        self.logger.info(
+            f"Built tag sets for {len(self.item_tag_sets)} items "
+            f"(avg tags per item: {avg_tags:.1f})"
+        )
+
+    def _compute_session_tag_profile(self, interaction):
+        """Compute union of artist tags for items in each session's listening history.
+
+        For each session in the batch, collects all unique tags from the items
+        the user has already listened to, creating a comprehensive tag profile.
+
+        Args:
+            interaction: Batch Interaction containing item_id_list and item_length.
+
+        Returns:
+            list[set]: Tag profile (union of tag sets) for each session in batch.
+        """
+        item_id_list = interaction["item_id_list"].cpu().numpy()  # (batch, max_hist_len)
+        item_length = interaction["item_length"].cpu().numpy()     # (batch,)
+
+        profiles = []
+        for i in range(item_id_list.shape[0]):
+            length = item_length[i]
+            history_ids = item_id_list[i, :length]
+            session_tags = set()
+            for iid in history_ids:
+                if 0 < iid < len(self.item_tag_sets):
+                    session_tags.update(self.item_tag_sets[iid])
+            profiles.append(session_tags)
+        return profiles
+
+    def _rerank_scores(self, scores, session_tag_profiles):
+        """Apply Jaccard tag-based reranking to top-K candidates in a vectorized manner."""
+        import numpy as np
+        
+        rerank_topk = self.rerank_topk
+        rerank_weight = self.rerank_weight
+        batch_size = scores.size(0)
+        actual_k = min(rerank_topk, scores.size(1))
+
+        # Get top-K indices
+        _, topk_indices = torch.topk(scores, actual_k, dim=-1)
+        
+        # Move indices to CPU for fast iteration
+        topk_indices_cpu = topk_indices.cpu().numpy()
+        boosts = np.zeros((batch_size, actual_k), dtype=np.float32)
+
+        for i in range(batch_size):
+            session_tags = session_tag_profiles[i]
+            if not session_tags:
+                continue
+
+            for j in range(actual_k):
+                item_id = topk_indices_cpu[i, j]
+                if item_id <= 0 or item_id >= len(self.item_tag_sets):
+                    continue
+                item_tags = self.item_tag_sets[item_id]
+                if not item_tags:
+                    continue
+                
+                # Fast Jaccard on python sets
+                intersection = len(session_tags.intersection(item_tags))
+                if intersection == 0:
+                    continue
+                union = len(session_tags) + len(item_tags) - intersection
+                jaccard = intersection / union
+                
+                boosts[i, j] = rerank_weight * jaccard
+
+        # Convert computed boosts to a tensor on the same device as scores
+        boosts_tensor = torch.from_numpy(boosts).to(scores.device)
+
+        # Vectorized update: new_score = score + abs(score) * boost
+        # This matches both:
+        # positive score: score * (1 + boost)
+        # negative score: score + abs(score) * boost
+        topk_scores = torch.gather(scores, 1, topk_indices)
+        new_topk_scores = topk_scores + torch.abs(topk_scores) * boosts_tensor
+        scores.scatter_(1, topk_indices, new_topk_scores)
+
+        return scores
 
 
 class KGTrainer(Trainer):
