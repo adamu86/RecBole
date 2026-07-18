@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
@@ -256,6 +257,49 @@ def _plot_popularity_buckets(stats, output_dir, label):
     return bucket_counts, bucket_interactions
 
 
+
+def _plot_session_playtime(stats, output_dir, label):
+    """Histogram of full session playtime (seconds) with log-scale x-axis.
+
+    Unlike :func:`_plot_durations` (capped at 2 h), this shows the entire
+    range so outliers and the overall shape are visible.
+    """
+    durations = [d for d in stats.session_durations if d > 0]
+    if not durations:
+        return
+
+    fig, ax = plt.subplots(figsize=FIG_SIZE_STANDARD)
+
+    # Log-spaced bins to cover the wide range
+    log_min = np.log10(max(min(durations), 1))
+    log_max = np.log10(max(durations))
+    bins = np.logspace(log_min, log_max, num=80)
+
+    ax.hist(durations, bins=bins, color=COLORS["highlight"],
+            edgecolor="white", linewidth=0.4, alpha=0.85)
+
+    ax.set_xscale("log")
+
+    # Mark the MIN_SESSION_PLAYTIME threshold
+    ax.axvline(30, color=COLORS["secondary"], linestyle="--", linewidth=1.2,
+               label="30 s threshold")
+    ax.legend(frameon=True, framealpha=0.8)
+
+    # Ensure 30 appears as a labelled tick alongside standard log ticks
+    default_ticks = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000]
+    all_ticks = sorted(set(default_ticks + [30]))
+    ax.set_xticks(all_ticks)
+    ax.set_xticklabels([f"{int(t):,}" for t in all_ticks])
+
+    ax.set_title(f"Session Playtime Distribution — {label}", fontweight="bold")
+    ax.set_xlabel("Playtime (seconds, log scale)")
+    ax.set_ylabel("Number of sessions")
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(_fmt_thousands))
+
+    _save_figure(fig, output_dir, "6_session_playtime")
+    plt.close(fig)
+
+
 # ---------------------------------------------------------------------------
 # Plot orchestrator
 # ---------------------------------------------------------------------------
@@ -281,6 +325,9 @@ def _generate_all_plots(stats, output_dir, label):
     bucket_counts, bucket_interactions = _plot_popularity_buckets(
         stats, output_dir, label
     )
+
+    print("Generating session playtime distribution...")
+    _plot_session_playtime(stats, output_dir, label)
 
     print(f"\nPlots saved to: {os.path.abspath(output_dir)}")
     return bucket_counts, bucket_interactions
