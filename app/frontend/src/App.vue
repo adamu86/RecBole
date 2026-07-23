@@ -111,18 +111,25 @@ const recommendations = reactive({
       this.value = !this.value;
     },
   },
+  enableReranking: {
+    value: false as boolean,
+    toggle() {
+      this.value = !this.value;
+    },
+  },
   isFetching: false as boolean,
   async fetch() {
     this.isFetching = true;
     try {
       const data = await fetchRecommendations(
         listeningHistory.items.map((t: Track) => parseInt(t.id)),
-        recommendations.topk,
+        100,
       );
       if (data) {
         this.items = data.recommendations;
-        
-        for (const track of this.items) {
+
+        if (this.enableReranking.value) {
+          for (const track of this.items) {
             if (!track.tags || track.tags.length === 0) {
               continue;
             }
@@ -130,8 +137,10 @@ const recommendations = reactive({
             const jaccardScore = jaccard(tags, track.tags);
             track.score = parseFloat(track.score) * (jaccardScore === 0 ? 1 : jaccardScore + 1);
           }
-
           this.items.sort((a, b) => (b.score || 0) - (a.score || 0));
+        }   
+        
+        this.items = this.items.slice(0, this.topk);
       }
     } finally {
       this.isFetching = false;
@@ -172,6 +181,9 @@ watch(
     }
   },
 );
+watch(() => recommendations.enableReranking.value, () => {
+  recommendations.fetch();
+});
 
 const models = reactive({
   current: "" as string,
@@ -394,7 +406,20 @@ onUnmounted(() => {
         "
         :icon="recommendations.autoContinue.value ? 'repeat' : 'hand-pointer'"
       />
-      <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
+      <Button
+        @click.prevent="recommendations.enableReranking.toggle()"
+        :info="
+          recommendations.enableReranking.value
+            ? 'Reranking is ON'
+            : 'Reranking is OFF'
+        "
+        :icon="
+          recommendations.enableReranking.value
+            ? 'wand-magic-sparkles'
+            : 'wand-magic'
+        "
+      />
+      <!-- <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
       <Button
         @click.prevent="recommendations.autoPlay.toggle()"
         :disabled="
@@ -407,7 +432,7 @@ onUnmounted(() => {
             : 'Auto-play is OFF'
         "
         :icon="recommendations.autoPlay.value ? 'stop' : 'play'"
-      />
+      /> -->
     </div>
   </main>
 </template>

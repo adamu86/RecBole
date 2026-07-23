@@ -11,7 +11,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="column">
-    <h2 class="column-title">Current recommendations</h2>
+    <h2 class="column-title">Current playlist</h2>
     <TransitionGroup name="fade" tag="ul">
       <li
         v-if="recommendations.length === 0"

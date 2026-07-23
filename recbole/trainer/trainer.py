@@ -146,8 +146,12 @@ class Trainer(AbstractTrainer):
         self.tot_item_num = None
 
         # Tag-based Jaccard reranking parameters
-        self.rerank_topk = self.config.final_config_dict.get("rerank_topk", None)
-        self.rerank_weight = self.config.final_config_dict.get("rerank_weight", 1.0)
+        raw_topk = self.config.final_config_dict.get("rerank_topk", None)
+        if raw_topk is None or str(raw_topk).strip().lower() == "none":
+            self.rerank_topk = None
+        else:
+            self.rerank_topk = int(raw_topk)
+        self.rerank_weight = float(self.config.final_config_dict.get("rerank_weight", 1.0))
         self.item_tag_sets = None
 
     def _build_optimizer(self, **kwargs):
