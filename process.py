@@ -230,10 +230,14 @@ def _split_into_sub_sessions(tracks):
     return sub_sessions
 
 
-def filter_by_time_window(days_from_max=DAYS_FROM_MAX, days_to_max=DAYS_TO_MAX):
+def filter_by_time_window(days_from_max=None, days_to_max=None):
     """Keep only sessions whose timestamp falls within
     ``[MAX_TIMESTAMP - days_from_max*86400, MAX_TIMESTAMP - days_to_max*86400]``.
     """
+    if days_from_max is None:
+        days_from_max = DAYS_FROM_MAX
+    if days_to_max is None:
+        days_to_max = DAYS_TO_MAX
     print(f"\nFiltering sessions: last {days_from_max} to {days_to_max} days from max timestamp...")
 
     input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE)

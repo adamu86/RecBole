@@ -88,7 +88,12 @@ class TrainingLog(BaseModel):
 def load_model_names():
     return glob.glob("saved/**/*.pth", recursive=True)
 
-def load_model(model_path=load_model_names()[0]):
+def load_model(model_path=None):
+    if model_path is None:
+        available = load_model_names()
+        if not available:
+            raise RuntimeError("No .pth model files found in saved/. Train a model first.")
+        model_path = available[0]
     global config, model, dataset, train_data, valid_data, test_data, LOG_FILE
     files_before = set(Path("log").glob(f"**/*.log"))
     config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
@@ -135,8 +140,14 @@ def load_dataset(config):
                 
     return dataset_name, track_names, track_tags
 
-config, model, dataset, train_data, valid_data, test_data, MODEL_PATH = load_model()
-DATASET_NAME, TRACK_NAMES, TRACK_TAGS = load_dataset(config)
+try:
+    config, model, dataset, train_data, valid_data, test_data, MODEL_PATH = load_model()
+    DATASET_NAME, TRACK_NAMES, TRACK_TAGS = load_dataset(config)
+except RuntimeError as e:
+    print(f"Warning: {e}")
+    print("API will start without a model. Use /load-model to load one.")
+    config = model = dataset = train_data = valid_data = test_data = MODEL_PATH = None
+    DATASET_NAME, TRACK_NAMES, TRACK_TAGS = None, {}, {}
 
 app = FastAPI()
 app.add_middleware(
