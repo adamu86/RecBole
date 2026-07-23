@@ -23,7 +23,7 @@ NETWORK = LastFMNetwork(api_key=api_key)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_DIR = os.path.join(BASE_DIR, "dataset")
 ARTISTS_FILE = os.path.join(DATASET_DIR, "artists.tsv")
-ARTIST_TAGS_FILE = os.path.join(DATASET_DIR, "artists_tagss.tsv")
+ARTIST_TAGS_FILE = os.path.join(DATASET_DIR, "artists_tags.tsv")
 
 def normalize_tag(tag: str) -> str:
     tag = tag.casefold().strip()
@@ -45,9 +45,9 @@ def find_artist_musicbrainz(artist_name: str) -> dict | None:
         top_score = max(int(a.get("ext:score", 0)) for a in exact_matches)
         tied = [a for a in exact_matches if int(a.get("ext:score", 0)) == top_score]
         if len(tied) > 1:
-            print(f"    [Uwaga] {len(tied)} artystów pasuje idealnie do '{artist_name}':")
+            print(f"    [Note] {len(tied)} artists match exactly to '{artist_name}':")
             for a in tied:
-                disamb = a.get("disambiguation", "brak opisu")
+                disamb = a.get("disambiguation", "no disambiguation")
                 print(f"      - {a['id']} ({disamb})")
             return None
     return max(exact_matches, key=lambda a: int(a.get("ext:score", 0)))
@@ -219,8 +219,8 @@ def merge_artists():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Downloads tags for artists.")
-    parser.add_argument('--retry-empty', action='store_true', help="Wymusza ponowne pobranie dla artystów bez żadnych tagów.")
-    parser.add_argument('--use-mb', action='store_true', help="Pobieraj dodatkowe tagi z MusicBrainz (domyślnie wyłączone ze względu na stabilność/szybkość).")
+    parser.add_argument('--retry-empty', action='store_true', help="Retry fetching tags for artists that have no tags")
+    parser.add_argument('--use-mb', action='store_true', help="Add suplemental MusicBrainz artists tags")
     args = parser.parse_args()
 
     if not os.path.exists(ARTISTS_FILE):

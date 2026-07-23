@@ -1,15 +1,3 @@
-"""Analyse session data and generate publication-quality plots.
-
-Supports both raw ``.idomaar`` and processed ``.tsv`` formats.  The input
-format is auto-detected from the file extension, or can be forced via
-the ``--format`` flag.
-
-Usage::
-
-    python3 analyze_sessions.py --file dataset_raw/sessions.idomaar --out analysis_plots_idomaar
-    python3 analyze_sessions.py --file dataset_raw/sessions.tsv     --out analysis_plots
-"""
-
 import json
 import os
 import argparse
@@ -31,9 +19,6 @@ try:
 except ImportError:
     fast_json = json  # type: ignore[assignment]
 
-# ---------------------------------------------------------------------------
-# Data container
-# ---------------------------------------------------------------------------
 
 @dataclass
 class SessionStats:
@@ -45,10 +30,6 @@ class SessionStats:
     session_dates: list = field(default_factory=list)
     total_interactions: int = 0
 
-
-# ---------------------------------------------------------------------------
-# Publication-quality plot configuration
-# ---------------------------------------------------------------------------
 
 COLORS = {
     "primary": "#2274A5",       # steel blue
@@ -107,10 +88,6 @@ def _setup_plot_style():
     })
 
 
-# ---------------------------------------------------------------------------
-# Plotting helpers
-# ---------------------------------------------------------------------------
-
 def _save_figure(fig, output_dir, basename):
     """Save *fig* as PNG and PDF to *output_dir*."""
     for fmt in OUTPUT_FORMATS:
@@ -122,10 +99,6 @@ def _fmt_thousands(x, _pos):
     """Tick formatter: ``12000`` → ``12,000``."""
     return f"{int(x):,}"
 
-
-# ---------------------------------------------------------------------------
-# Individual plot functions
-# ---------------------------------------------------------------------------
 
 def _plot_session_lengths(stats, output_dir, label):
     """Histogram of session lengths (number of tracks per session)."""
@@ -300,10 +273,6 @@ def _plot_session_playtime(stats, output_dir, label):
     plt.close(fig)
 
 
-# ---------------------------------------------------------------------------
-# Plot orchestrator
-# ---------------------------------------------------------------------------
-
 def _generate_all_plots(stats, output_dir, label):
     """Generate all five analysis plots; return bucket data for summary."""
     os.makedirs(output_dir, exist_ok=True)
@@ -332,10 +301,6 @@ def _generate_all_plots(stats, output_dir, label):
     print(f"\nPlots saved to: {os.path.abspath(output_dir)}")
     return bucket_counts, bucket_interactions
 
-
-# ---------------------------------------------------------------------------
-# Console summary
-# ---------------------------------------------------------------------------
 
 def _print_summary(stats, label, bucket_counts, bucket_interactions):
     """Print formatted bucket statistics and dataset summary to stdout."""
@@ -370,10 +335,6 @@ def _print_summary(stats, label, bucket_counts, bucket_interactions):
     print(f"  Median session length:  {median_len:>12.1f} tracks")
     print("-" * 50)
 
-
-# ---------------------------------------------------------------------------
-# Parsers — one per input format
-# ---------------------------------------------------------------------------
 
 _IDOMAAR_PREFIX = "event.session\t"
 _IDOMAAR_PREFIX_LEN = len(_IDOMAAR_PREFIX)  # 14
@@ -478,10 +439,6 @@ def _parse_tsv(file_path):
     return stats
 
 
-# ---------------------------------------------------------------------------
-# Format detection
-# ---------------------------------------------------------------------------
-
 _FORMAT_PARSERS = {
     "idomaar": (_parse_idomaar, "Raw idomaar"),
     "tsv":     (_parse_tsv,     "Processed"),
@@ -497,10 +454,6 @@ def _detect_format(file_path):
         return "idomaar"
     return "tsv"
 
-
-# ---------------------------------------------------------------------------
-# Main entry point
-# ---------------------------------------------------------------------------
 
 def analyze(file_path, output_dir, fmt=None):
     """Run the full analysis pipeline.
