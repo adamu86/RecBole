@@ -32,37 +32,40 @@ def normalize_tag(tag: str) -> str:
     tag = re.sub(r"-+", "-", tag).strip("-")
     return tag
 
-def find_artist_musicbrainz(artist_name: str) -> dict | None:
-    result = musicbrainzngs.search_artists(artist=artist_name, limit=5)
-    artists = result.get("artist-list", [])
-    exact_matches = [
-        a for a in artists
-        if a["name"].casefold() == artist_name.casefold()
-    ]
-    if not exact_matches:
-        return None
-    if len(exact_matches) > 1:
-        top_score = max(int(a.get("ext:score", 0)) for a in exact_matches)
-        tied = [a for a in exact_matches if int(a.get("ext:score", 0)) == top_score]
-        if len(tied) > 1:
-            print(f"    [Note] {len(tied)} artists match exactly to '{artist_name}':")
-            for a in tied:
-                disamb = a.get("disambiguation", "no disambiguation")
-                print(f"      - {a['id']} ({disamb})")
-            return None
-    return max(exact_matches, key=lambda a: int(a.get("ext:score", 0)))
+def get_artist_tags_musicbrainz(artist_name: str) -> list[str]:
+    """Search MusicBrainz for artist and fetch their genres in 1 single HTTP request."""
+    try:
+        response = requests.get(
+            "https://musicbrainz.org/ws/2/artist",
+            params={"query": f'artist:"{artist_name}"', "inc": "genres", "fmt": "json", "limit": 5},
+            headers={"User-Agent": USER_AGENT},
+            timeout=15,
+        )
+        if response.status_code == 429:
+            time.sleep(2.0)
+            response = requests.get(
+                "https://musicbrainz.org/ws/2/artist",
+                params={"query": f'artist:"{artist_name}"', "inc": "genres", "fmt": "json", "limit": 5},
+                headers={"User-Agent": USER_AGENT},
+                timeout=15,
+            )
 
-def get_artist_tags_musicbrainz(artist_mbid: str) -> list[str]:
-    response = requests.get(
-        f"https://musicbrainz.org/ws/2/artist/{artist_mbid}",
-        params={"inc": "genres", "fmt": "json"},
-        headers={"User-Agent": USER_AGENT},
-        timeout=30,
-    )
-    response.raise_for_status()
-    genres = response.json().get("genres", [])
-    genres = sorted(genres, key=lambda genre: int(genre.get("count", 0)), reverse=True)
-    return [normalize_tag(g["name"]) for g in genres]
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        artists = data.get("artists", [])
+        if not artists:
+            return []
+
+        exact = [a for a in artists if a.get("name", "").casefold() == artist_name.casefold()]
+        best = exact[0] if exact else artists[0]
+        genres = sorted(best.get("genres", []), key=lambda g: int(g.get("count", 0)), reverse=True)
+        return [normalize_tag(g["name"]) for g in genres if g.get("name")]
+    except Exception as e:
+        print(f"  [MB Error]: {e}")
+        return []
+
 
 def get_artist_tags_lastfm(artist_name: str) -> list[dict]:
     if not NETWORK:
@@ -79,6 +82,7 @@ def get_artist_tags_lastfm(artist_name: str) -> list[dict]:
     except Exception as e:
         print(f"    [LastFM Error]: {e}")
     return []
+
 
 def fetch_artist_tags(retry_empty=False, use_mb=False):
     existing_tags = {}
@@ -137,29 +141,19 @@ def fetch_artist_tags(retry_empty=False, use_mb=False):
             if use_mb:
                 time.sleep(1.05)
                 try:
-                    mb_artist = find_artist_musicbrainz(artist_name)
+                    mb_fetched = get_artist_tags_musicbrainz(artist_name)
+                    if mb_fetched:
+                        lastfm_tag_names = {t["tag"] for t in lastfm_tags}
+                        added = 0
+                        for t in mb_fetched:
+                            if t not in lastfm_tag_names:
+                                mb_tags.append(t)
+                                added += 1
+                        print(f"  -> Added {added} supplemental tags from MusicBrainz.")
+                    else:
+                        print(f"  -> No supplemental tags in MusicBrainz.")
                 except Exception as e:
-                    print(f"  [MB Error] searching: {e}")
-                    mb_artist = None    
-                    
-                if mb_artist:
-                    time.sleep(1.05)
-                    try:
-                        mb_fetched = get_artist_tags_musicbrainz(mb_artist["id"])
-                        if mb_fetched:
-                            lastfm_tag_names = {t["tag"] for t in lastfm_tags}
-                            added = 0
-                            for t in mb_fetched:
-                                if t not in lastfm_tag_names:
-                                    mb_tags.append(t)
-                                    added += 1
-                            print(f"  -> Added {added} supplemental tags from MusicBrainz.")
-                        else:
-                            print(f"  -> No supplemental tags in MusicBrainz.")
-                    except Exception as e:
-                        print(f"  [MB Error] fetching tags: {e}")
-                else:
-                    print(f"  -> Artist not found in MusicBrainz.")
+                    print(f"  [MB Error] fetching tags: {e}")
             
             existing_tags[artist_name] = (lastfm_tags, mb_tags)
             lastfm_json = json.dumps(lastfm_tags, ensure_ascii=False)
