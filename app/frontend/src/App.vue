@@ -382,8 +382,8 @@ onUnmounted(() => {
         icon="eraser"
       /> -->
     </div>
-    <div class="flex gap-2">
-      <Input v-model="recommendations.topk" placeholder="K..." />
+    <div class="flex gap-2 w-2/3 ml-auto">
+      <Input v-model="recommendations.topk" placeholder="K..."/>
       <Button
         @click.prevent="recommendations.fetch()"
         :disabled="

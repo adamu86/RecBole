@@ -5,7 +5,7 @@ import subprocess
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-
+import glob
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -487,13 +487,228 @@ def analyze(file_path, output_dir, fmt=None):
     _print_summary(stats, label, bucket_counts, bucket_interactions)
 
 
+def _load_any_sessions(target):
+    """Load sessions dict: sid -> [track_ids] from a file (.tsv/.idomaar) or dataset directory."""
+    sessions = {}
+
+    if os.path.isdir(target):
+        inter_files = glob.glob(os.path.join(target, "*.inter"))
+        for inter_path in inter_files:
+            with open(inter_path, "r", encoding="utf-8") as f:
+                header = f.readline().strip().split("\t")
+                sess_col = header.index("session_id:token") if "session_id:token" in header else 0
+                item_col = header.index("item_id:token") if "item_id:token" in header else 1
+                hist_col = header.index("item_id_list:token_seq") if "item_id_list:token_seq" in header else -1
+
+                for line in f:
+                    parts = line.strip("\n").split("\t")
+                    if len(parts) <= max(sess_col, item_col):
+                        continue
+                    sid = parts[sess_col]
+                    item = parts[item_col]
+                    hist = parts[hist_col].split() if hist_col != -1 and parts[hist_col] else []
+
+                    full_seq = hist + [item]
+                    if sid not in sessions or len(full_seq) > len(sessions[sid]):
+                        sessions[sid] = full_seq
+
+    elif os.path.isfile(target):
+        fmt = _detect_format(target)
+        with open(target, "r", encoding="utf-8") as f:
+            for idx, line in enumerate(tqdm(f, desc=f"Loading {os.path.basename(target)}")):
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                if fmt == "idomaar":
+                    if not line_str.startswith(_IDOMAAR_PREFIX):
+                        continue
+                    line_body = line_str[_IDOMAAR_PREFIX_LEN:]
+                    try:
+                        obj_str = line_body[line_body.find("} {") + 2:].strip()
+                        session_objects = fast_json.loads(obj_str)
+                        tracks = [str(t["id"]) for t in session_objects.get("objects", []) if "id" in t]
+                        if tracks:
+                            sessions[str(idx)] = tracks
+                    except Exception:
+                        continue
+                else:
+                    parts = line_str.split("\t")
+                    if len(parts) < 4:
+                        continue
+                    try:
+                        sid = parts[0]
+                        tracks_obj = fast_json.loads(parts[3])
+                        tracks = [str(t["id"]) for t in tracks_obj if "id" in t]
+                        if tracks:
+                            sessions[sid] = tracks
+                    except Exception:
+                        continue
+
+    return sessions
+
+
+def _load_metadata_for_target(target):
+    """Load track_id -> artist_name and track_id -> set_of_tags for a given file/dir target."""
+    artist_map = {}
+    tags_map = {}
+    artist_tags = {}
+
+    # Load tracks.tsv
+    candidate_tracks = []
+    if os.path.isdir(target):
+        candidate_tracks.append(os.path.join(target, "tracks.tsv"))
+    candidate_tracks.extend(["dataset_raw/tracks.tsv", "dataset/tracks.tsv"])
+
+    for tracks_path in candidate_tracks:
+        if os.path.exists(tracks_path):
+            with open(tracks_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip("\n").split("\t")
+                    if len(parts) >= 2:
+                        tid = parts[0]
+                        artist = parts[1].split("/_/")[0].strip()
+                        artist_map[tid] = artist
+            break
+
+    # Load artist tags from artists_tags.tsv
+    artist_tags_path = "dataset/artists_tags.tsv"
+    if os.path.exists(artist_tags_path):
+        with open(artist_tags_path, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip("\n").split("\t")
+                try:
+                    if len(parts) >= 4:
+                        tags = _parse_tags_json(fast_json.loads(parts[2])) + _parse_tags_json(fast_json.loads(parts[3]))
+                    elif len(parts) >= 2:
+                        json_col = parts[2] if len(parts) == 3 else parts[1]
+                        tags = _parse_tags_json(fast_json.loads(json_col))
+                    else:
+                        continue
+                    if tags:
+                        artist_tags[parts[0]] = set(_deduplicate_tags(tags))
+                except Exception:
+                    pass
+
+    # Map tags to tracks
+    for tid, artist in artist_map.items():
+        str_id = str(tid)
+        tags = artist_tags.get(str_id) or artist_tags.get(artist) or set()
+        tags_map[str_id] = tags
+        tags_map[tid] = tags
+
+    return artist_map, tags_map
+
+
+def _parse_tags_json(data):
+    if not data:
+        return []
+    if isinstance(data[0], dict):
+        return [str(t.get("tag", "")).replace(" ", "-") for t in data if t.get("tag")]
+    return [str(t).replace(" ", "-") for t in data if t]
+
+
+def _deduplicate_tags(tags):
+    return list(dict.fromkeys(t for t in tags if t))
+
+
+def analyze_artist_coherence(target):
+    """Oddzielna funkcja analizująca spójność i pokrycie ARTYSTÓW w pliku/katalogu sesji."""
+    print(f"\n==================================================")
+    print(f" 🎤 ANALIZA ARTYSTÓW: {os.path.basename(target)}")
+    print(f"==================================================")
+
+    artist_map, _ = _load_metadata_for_target(target)
+    sessions = _load_any_sessions(target)
+
+    if not sessions:
+        print("Brak sesji do przeanalizowania.")
+        return
+
+    consecutive_same_artist = 0
+    total_transitions = 0
+    unique_artists_counts = []
+    top_artist_shares = []
+
+    for sid, items in sessions.items():
+        if len(items) < 2:
+            continue
+
+        artists = [artist_map.get(str(itm), artist_map.get(itm, "unknown")) for itm in items]
+        known_artists = [a for a in artists if a != "unknown"]
+
+        if known_artists:
+            unique_artists_counts.append(len(set(known_artists)))
+            most_common = Counter(known_artists).most_common(1)[0][1]
+            top_artist_shares.append(most_common / len(items))
+
+        for i in range(len(artists) - 1):
+            total_transitions += 1
+            if artists[i] != "unknown" and artists[i] == artists[i + 1]:
+                consecutive_same_artist += 1
+
+    pct_consecutive = (consecutive_same_artist / total_transitions * 100) if total_transitions > 0 else 0
+    avg_unique = np.mean(unique_artists_counts) if unique_artists_counts else 0
+    avg_share = np.mean(top_artist_shares) * 100 if top_artist_shares else 0
+
+    print(f"\n📊 Przeanalizowane sesje:                         {len(sessions):,}")
+    print(f"• Przejścia KROK-PO-KROKU (ten sam artysta pod rząd): {pct_consecutive:.2f}%")
+    print(f"• Średnia liczba unikalnych artystów w sesji:       {avg_unique:.2f}")
+    print(f"• Średni udział głównego artysty w sesji:          {avg_share:.2f}%")
+
+
+def analyze_genre_coherence(target):
+    """Oddzielna funkcja analizująca spójność GATUNKÓW (tagów) w pliku/katalogu sesji."""
+    print(f"\n==================================================")
+    print(f" 🏷️ ANALIZA GATUNKÓW (TAGÓW): {os.path.basename(target)}")
+    print(f"==================================================")
+
+    _, tags_map = _load_metadata_for_target(target)
+    sessions = _load_any_sessions(target)
+
+    if not sessions:
+        print("Brak sesji do przeanalizowania.")
+        return
+
+    consecutive_jaccard_scores = []
+    session_jaccard_scores = []
+
+    for sid, items in sessions.items():
+        if len(items) < 2:
+            continue
+
+        item_tags = [tags_map.get(str(itm), tags_map.get(itm, set())) for itm in items]
+        valid_tags = [t for t in item_tags if t]
+
+        # Przejścia krok-po-kroku
+        for i in range(len(items) - 1):
+            t1 = item_tags[i]
+            t2 = item_tags[i + 1]
+            if t1 and t2:
+                union = len(t1.union(t2))
+                inter = len(t1.intersection(t2))
+                consecutive_jaccard_scores.append(inter / union if union > 0 else 0.0)
+
+        # Całkowita spójność sesji (wszystkie pary)
+        if len(valid_tags) >= 2:
+            all_inter = set.intersection(*valid_tags)
+            all_union = set.union(*valid_tags)
+            if all_union:
+                session_jaccard_scores.append(len(all_inter) / len(all_union))
+
+    avg_consecutive = np.mean(consecutive_jaccard_scores) * 100 if consecutive_jaccard_scores else 0
+    avg_session = np.mean(session_jaccard_scores) * 100 if session_jaccard_scores else 0
+
+    print(f"\n📊 Przeanalizowane sesje:                         {len(sessions):,}")
+    print(f"• Średnia spójność tagów KROK-PO-KROKU (Jaccard): {avg_consecutive:.2f}%")
+    print(f"• Średnia ogólna spójność tagów całej sesji:        {avg_session:.2f}%")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Analyse session data (raw idomaar or processed TSV) "
-                    "and generate publication-quality plots.",
+        description="Analyse session data (raw idomaar, processed TSV, or RecBole datasets).",
     )
     parser.add_argument(
-        "--file", type=str, required=True,
+        "--file", type=str, default=None,
         help="Path to the sessions file (.idomaar or .tsv)",
     )
     parser.add_argument(
@@ -505,5 +720,44 @@ if __name__ == "__main__":
         dest="fmt",
         help="Force input format (auto-detected from extension if omitted)",
     )
+    parser.add_argument(
+        "--dataset-dir", type=str, default=None,
+        help="Path to RecBole dataset directory (e.g. dataset/30music__days[125-65]...)"
+    )
+    parser.add_argument(
+        "--check-artists", action="store_true",
+        help="Run standalone artist coherence analysis"
+    )
+    parser.add_argument(
+        "--check-genres", action="store_true",
+        help="Run standalone genre coherence analysis"
+    )
+
     args = parser.parse_args()
-    analyze(args.file, args.out, args.fmt)
+
+    if args.dataset_dir:
+        if args.check_artists:
+            analyze_artist_coherence(args.dataset_dir)
+        elif args.check_genres:
+            analyze_genre_coherence(args.dataset_dir)
+        else:
+            analyze_artist_coherence(args.dataset_dir)
+            analyze_genre_coherence(args.dataset_dir)
+    elif args.file:
+        if args.check_artists:
+            analyze_artist_coherence(args.file)
+        elif args.check_genres:
+            analyze_genre_coherence(args.file)
+        else:
+            analyze(args.file, args.out, args.fmt)
+    else:
+        # Default fallback to checking dataset_processed/sessions or dataset_raw/sessions
+        candidates = ["dataset_processed/sessions", "dataset_raw/sessions", "sessions.tsv"]
+        d_dirs = glob.glob("dataset/30music*")
+        target = next((c for c in candidates if os.path.exists(c)), d_dirs[0] if d_dirs else None)
+        if target:
+            analyze_artist_coherence(target)
+            analyze_genre_coherence(target)
+        else:
+            parser.print_help()
+

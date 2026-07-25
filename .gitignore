@@ -38,3 +38,4 @@ run_model.py
 mod_scripts/c*
 
 backup/*
+**/*.zip

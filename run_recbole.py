@@ -2,11 +2,10 @@ import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import FPMC, GRU4Rec, NARM, STAMP, SASRec, SRGNN
+from recbole.model.sequential_recommender import FPMC, GRU4Rec, GRU4RecF, NARM, STAMP, SASRec, SASRecF, SRGNN
 from recbole.quick_start.quick_start import load_data_and_model
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
-from evaluate_playlist import evaluate_playlist
 from pathlib import Path
 import traceback
 import torch
@@ -29,13 +28,20 @@ model_dict = {
     #     },
     #     'model': FPMC
     # },
-    'GRU4Rec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': GRU4Rec
-    },
+    # 'GRU4Rec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None                        
+    #     },
+    #     'model': GRU4Rec
+    # },
+    # 'GRU4RecF': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,  
+    #         'neg_sampling': None,
+    #     },
+    #     'model': GRU4RecF
+    # },
     # 'NARM': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -50,14 +56,20 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-
-    #     },
-    #     'model': SASRec
-    # },
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
+    'SASRecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRecF
+    },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,

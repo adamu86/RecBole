@@ -39,7 +39,7 @@
     "recbole/properties/model/HRM.yaml": true,
     "recbole/properties/model/KSR.yaml": true,
     "recbole/properties/model/S3Rec.yaml": true,
-    "recbole/properties/model/SASRecF.yaml": true,
+    // "recbole/properties/model/SASRecF.yaml": true,
     "recbole/properties/model/SASRecCPR.yaml": true,
     "recbole/properties/model/SHAN.yaml": true,
     "recbole/properties/model/SINE.yaml": true,
@@ -53,6 +53,13 @@
     "recbole/model/general*": true,
     "recbole/model/knowledge*": true,
     "recbole/model/exlib*": true,
+
+    "test_reranking.py": true,
+    "**/*.zip": true,
+    "tables.html": true,
+    "AppDockerfile": true,
+    "Dockerfile": true,
+    "docker-compose.yml": true,
 
     "backup": true,
 

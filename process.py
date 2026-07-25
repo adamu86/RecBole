@@ -35,6 +35,7 @@ MIN_TIMESTAMP = 1390209860
 MAX_TIMESTAMP = 1421745720
 
 _SESSION_INACTIVITY_GAP = 1800
+_MIN_TAG_WEIGHT = 0
 
 _ARG_TO_GLOBAL = {
     "min_track_playcount": "MIN_TRACK_PLAYCOUNT",
@@ -417,11 +418,11 @@ def make_track_names_file():
     print(f"Saved {len(tracks):,} clean tracks to {output_path}")
 
 
-def _parse_tags_json(data):
+def _parse_tags_json(data, min_weight=_MIN_TAG_WEIGHT):
     """Extract a flat list of hyphenated tag strings from a JSON-parsed
-    tag structure.
+    tag structure, filtering by weight >= min_weight.
 
-    Handles both ``[{"tag": "rock"}, ...]`` and ``["rock", ...]`` formats.
+    Handles both ``[{"tag": "rock", "weight": 100}, ...]`` and ``["rock", ...]`` formats.
     """
     if not data:
         return []
@@ -429,7 +430,7 @@ def _parse_tags_json(data):
         return [
             str(t.get("tag", "")).replace(" ", "-")
             for t in data
-            if t.get("tag")
+            if t.get("tag") and int(t.get("weight", 100)) >= min_weight
         ]
     return [str(t).replace(" ", "-") for t in data if t]
 
@@ -439,8 +440,23 @@ def _deduplicate_tags(tags):
     return list(dict.fromkeys(t for t in tags if t))
 
 
+def _normalize_artist_name(name):
+    """Normalize an artist name into a safe RecBole token.
+
+    Converts to lowercase, replaces spaces/special chars with hyphens,
+    and strips leading/trailing hyphens.  E.g. ``"Weird Al" Yankovic``
+    becomes ``weird-al-yankovic``.
+    """
+    name = name.strip().lower()
+    # Replace common separators with hyphens
+    name = re.sub(r'[\s/\\,;:&+\'"!()\[\]{}]+', '-', name)
+    # Collapse multiple hyphens
+    name = re.sub(r'-{2,}', '-', name)
+    return name.strip('-') or "unknown-artist"
+
+
 def make_item_file(alias):
-    """Create the ``.item`` file mapping track IDs to artist tags."""
+    """Create the ``.item`` file mapping track IDs to artist tags and artist ID."""
     print("\nCreating .item file...")
 
     artist_tags_path = os.path.join("dataset", "artists_tags.tsv")
@@ -457,7 +473,7 @@ def make_item_file(alias):
 
     with open(tracks_path, "r", encoding="utf-8") as fin, \
          open(output_path, "w", encoding="utf-8") as fout:
-        fout.write("item_id:token\titem_tags:token_seq\n")
+        fout.write("item_id:token\tartist_name:token_seq\tartist_tags:token_seq\n")
 
         for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
             parts = line.strip("\n").split("\t")
@@ -465,11 +481,12 @@ def make_item_file(alias):
                 continue
 
             track_id = parts[0]
-            artist_name = parts[1].split("/_/")[0]
+            artist = parts[1].split("/_/")[0]
+            artist_name = _normalize_artist_name(artist)
             tags = (artist_tags.get(track_id)
                     or artist_tags.get(artist_name)
                     or "unknown")
-            fout.write(f"{track_id}\t{tags}\n")
+            fout.write(f"{track_id}\t{artist_name}\t{tags}\n")
 
 
 def _load_artist_tags(artist_tags_path):
