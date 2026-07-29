@@ -21,13 +21,28 @@ def _patched_torch_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = _patched_torch_load
 
+# Patch NumPy >= 1.24 compatibility for RecBole (where np.float, np.int, np.bool were removed)
+import numpy as np
+for _attr, _type in [
+    ("float", float),
+    ("int", int),
+    ("bool", bool),
+    ("complex", complex),
+    ("object", object),
+    ("str", str),
+    ("long", int),
+    ("unicode", str),
+]:
+    if not hasattr(np, _attr):
+        setattr(np, _attr, _type)
+
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
-    #         'train_batch_size': 4096,
-    #     },
-    #     'model': FPMC
-    # },
+    'FPMC': {
+        'parameter_dict': {
+            'train_batch_size': 4096,
+        },
+        'model': FPMC
+    },
     # 'GRU4Rec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -56,20 +71,20 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    'SASRec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SASRec
-    },
-    'SASRecF': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SASRecF
-    },
+    # 'SASRec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SASRec
+    # },
+    # 'SASRecF': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SASRecF
+    # },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -155,112 +170,81 @@ for model_name in model_dict.keys():
             torch.cuda.empty_cache()
             continue
 
-# # dataset_dict = dict(reversed(list(dataset_dict.items())))
+# dokręcanie śruby - kontynuacja dla modeli, które nie ukończyły 20 epok (przerwały uczenie)
+for model_name in model_dict.keys():
+    for dataset_name in dataset_dict.keys():
+        checkpoint_dir = f"saved/{model_name}_{dataset_name}"
+        if not os.path.exists(checkpoint_dir):
+            continue
 
-# # dokręcanie śruby
-# for model_name in model_dict.keys():
-#     for dataset_name in dataset_dict.keys():
-#         if "days[245-185]" not in dataset_name:
-#             continue
-#         checkpoint_dir = f"saved/{model_name}_{dataset_name}"
-#         if not os.path.exists(checkpoint_dir):
-#             continue
+        checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
+        if not checkpoints:
+            continue
 
-#         for handler in logging.root.handlers[:]:
-#             logging.root.removeHandler(handler)
-#             handler.close()
+        latest = max(checkpoints, key=os.path.getmtime)
 
-#         try:
-#             config = Config(
-#                 model=model_name,
-#                 dataset=dataset_name,
-#                 config_dict={
-#                     **model_dict[model_name]['parameter_dict'],
-#                     'checkpoint_dir': checkpoint_dir,
-#                     'epochs': 20,
-#                     'save_dataset': False
-#                 }
-#             )
+        # Sprawdzenie liczby ukończonych epok w pliku checkpointu
+        try:
+            ckpt = torch.load(latest, map_location='cpu')
+            last_epoch = ckpt.get('epoch', -1)
+            # Epoki w RecBole są indeksowane od 0 (epoka 19 to 20. epoka completed).
+            if last_epoch >= 19:
+                continue
+        except Exception as e:
+            logger.warning(f"Błąd odczytu checkpointu {latest}: {e}")
+            continue
 
-#             init_seed(config['seed'], config['reproducibility'])
-#             init_logger(config)
-#             if not logger.handlers:
-#                 logger.addHandler(logging.StreamHandler())
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+            handler.close()
 
-#             dataset = create_dataset(config)
-#             train_data, valid_data, test_data = data_preparation(config, dataset)
-#             model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
+        try:
+            config = Config(
+                model=model_name,
+                dataset=dataset_name,
+                config_dict={
+                    **model_dict[model_name]['parameter_dict'],
+                    'checkpoint_dir': checkpoint_dir,
+                    'epochs': 20,
+                    'save_dataset': False
+                }
+            )
 
-#             trainer = Trainer(config, model)
-            
-#             checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
-#             latest = max(checkpoints, key=os.path.getmtime)
-#             trainer.resume_checkpoint(latest)
+            init_seed(config['seed'], config['reproducibility'])
+            init_logger(config)
+            if not logger.handlers:
+                logger.addHandler(logging.StreamHandler())
 
-#             best_valid_score, best_valid_result = trainer.fit(
-#                 train_data, valid_data, saved=True, show_progress=True
-#             )
-#             test_result = trainer.evaluate(test_data)
+            logger.info(f"Wznowienie uczenia ('dokręcanie śruby') dla {model_name} na {dataset_name} (dotychczasowa epoka w checkpoincie: {last_epoch + 1}/20)...")
 
-#             with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
-#                 json.dump({"test_result": test_result}, f, indent=2)
+            dataset = create_dataset(config)
+            train_data, valid_data, test_data = data_preparation(config, dataset)
+            model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
 
-#             # evaluate_playlist(
-#             #     config=config,
-#             #     model=model,
-#             #     dataset=dataset,
-#             #     train_data=train_data,
-#             #     test_data=test_data
-#             # )
+            trainer = Trainer(config, model)
+            trainer.resume_checkpoint(latest)
 
-#             del model, trainer, dataset, train_data, valid_data, test_data
-#             gc.collect()
-#             torch.cuda.empty_cache()
+            best_valid_score, best_valid_result = trainer.fit(
+                train_data, valid_data, saved=True, show_progress=True
+            )
+            test_result = trainer.evaluate(test_data)
 
-#         except Exception as e:
-#             logger.error(f"Finetune failed {model_name} on {dataset_name}: {e}")
-#             traceback.print_exc()
+            with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
+                json.dump({"test_result": test_result}, f, indent=2)
 
-# # sama ewaluacja playlist
-# for model_name in model_dict.keys():
-#     for dataset_name in dataset_dict.keys():
-#         for handler in logging.root.handlers[:]:
-#             logging.root.removeHandler(handler)
-#             handler.close()
+            del model, trainer, dataset, train_data, valid_data, test_data
+            gc.collect()
+            torch.cuda.empty_cache()
 
-#         save_dir = f"saved/{model_name}_{dataset_name}"
-#         if not os.path.exists(save_dir):
-#             logger.warning(f"Brak folderu {save_dir}, pomijam")
-#             continue
+        except Exception as e:
+            logger.error(f"Finetune/Wznowienie nie powiodło się dla {model_name} na {dataset_name}: {e}")
+            traceback.print_exc()
+            torch.cuda.empty_cache()
 
-#         checkpoint_files = glob.glob(glob.escape(save_dir) + f"/{model_name}-*.pth")
-#         if not checkpoint_files:
-#             logger.warning(f"Brak checkpointu w {save_dir}, pomijam")
-#             continue
-
-#         checkpoint_file = max(checkpoint_files, key=os.path.getmtime)
-
-#         try:
-#             config, model, dataset, train_data, valid_data, test_data = load_data_and_model(
-#                 model_file=checkpoint_file
-#             )
-
-#             evaluate_playlist(
-#                 config=config,
-#                 model=model,
-#                 dataset=dataset,
-#                 train_data=train_data,
-#                 test_data=test_data
-#             )
-
-#             del model, dataset, train_data, valid_data, test_data
-#             gc.collect()
-#             torch.cuda.empty_cache()
-#         except Exception as e:
-#             logger.error(f"Failed {model_name} on {dataset_name}: {e}")
-#             traceback.print_exc()
-#             torch.cuda.empty_cache()
-#             continue
 
 for dataset_name in dataset_dict.keys():
-    os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
+    if os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
+        os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
+
+
+

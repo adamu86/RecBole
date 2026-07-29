@@ -33,7 +33,7 @@ numerical_features: [] # (list) Float feature fields to be embedded
 # Selectively Loading
 load_col: # (dict) The suffix of atomic files: (list) field names to be loaded.
   inter: [session_id, item_id, item_id_list, timestamp]
-  item: [item_id, artist_name, artist_tags]
+  item: [item_id, artist_tags, track_tags]
   # the others
 unload_col: ~ # (dict) The suffix of atomic files: (list) field names NOT to be loaded.
 unused_col: ~ # (dict) The suffix of atomic files: (list) field names which are loaded but not used.
@@ -109,7 +109,3 @@ valid_metric: MRR@10 # (str) The evaluation metric for early stopping.
 valid_metric_bigger: True # (bool) Whether to take a bigger valid metric value as a better result.
 eval_batch_size: 2048 # (int) The evaluation batch size.
 metric_decimal_place: 4 # (int) The decimal place of metric scores.
-
-# Tag-Based Jaccard Reranking Settings
-rerank_topk: ~ # (int or None) Number of top candidates to rerank using tag similarity. Set to ~ (None) to disable.
-rerank_weight: 1.0 # (float) Multiplier for Jaccard boost. With weight=1.0: jaccard=0.5 → score * 1.5 (150%).
