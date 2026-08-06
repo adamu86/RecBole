@@ -12,7 +12,7 @@ def main():
     dataset_dir = os.path.join(base_dir, "dataset")
     output_file = os.path.join(dataset_dir, "artists.tsv")
 
-    pattern = os.path.join(dataset_dir, "30music__days*", "tracks.tsv")
+    pattern = os.path.join(dataset_dir, "*", "tracks.tsv")
     tracks_files = sorted(glob.glob(pattern))
 
     if not tracks_files:

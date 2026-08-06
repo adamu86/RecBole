@@ -84,7 +84,7 @@ def get_artist_tags_lastfm(artist_name: str) -> list[dict]:
     return []
 
 
-def fetch_artist_tags(retry_empty=False, use_mb=False):
+def fetch_artist_tags(retry_empty=False, use_mb=False, output_file=None):
     existing_tags = {}
     if os.path.exists(ARTIST_TAGS_FILE):
         with open(ARTIST_TAGS_FILE, 'r', encoding='utf-8') as f:
@@ -116,7 +116,8 @@ def fetch_artist_tags(retry_empty=False, use_mb=False):
                 
     print(f"Found tags for {len(existing_tags)}/{len(all_artists)} artists.")
     
-    with open(ARTIST_TAGS_FILE, 'w', encoding='utf-8') as f_out:
+    out_path = output_file or ARTIST_TAGS_FILE
+    with open(out_path, 'w', encoding='utf-8') as f_out:
         for i, artist_name in enumerate(all_artists): 
             if artist_name in existing_tags:
                 lastfm_tags, mb_tags = existing_tags[artist_name]
@@ -162,7 +163,7 @@ def fetch_artist_tags(retry_empty=False, use_mb=False):
                 f_out.write(f"{track_id}\t{artist_name}\t{lastfm_json}\t{mb_json}\n")
             f_out.flush()
             
-    print(f"\nFinished writing to file: {ARTIST_TAGS_FILE}")
+    print(f"\nFinished writing to file: {out_path}")
 
 def merge_artists():
     def extract_artists_from_tracks(tracks_path: str) -> dict[str, str]:
@@ -185,7 +186,7 @@ def merge_artists():
                     track_artist_map[track_id] = artist
         return track_artist_map
 
-    pattern = os.path.join(DATASET_DIR, "30music__days*", "tracks.tsv")
+    pattern = os.path.join(DATASET_DIR, "*", "tracks.tsv")
     tracks_files = sorted(glob.glob(pattern))
 
     if not tracks_files:
@@ -215,8 +216,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Downloads tags for artists.")
     parser.add_argument('--retry-empty', action='store_true', help="Retry fetching tags for artists that have no tags")
     parser.add_argument('--use-mb', action='store_true', help="Add suplemental MusicBrainz artists tags")
+    parser.add_argument('--merge-only', action='store_true', help="Only merge artists from tracks.tsv files, skip tag fetching")
+    parser.add_argument('--output', type=str, default=None, help="Output file path for artist tags (default: dataset/artists_tags.tsv)")
     args = parser.parse_args()
 
-    if not os.path.exists(ARTISTS_FILE):
-        merge_artists()
-    fetch_artist_tags(retry_empty=args.retry_empty, use_mb=args.use_mb)
+    merge_artists()
+    if not args.merge_only:
+        fetch_artist_tags(retry_empty=args.retry_empty, use_mb=args.use_mb, output_file=args.output)

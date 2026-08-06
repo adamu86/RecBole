@@ -1,3 +1,4 @@
+from recbole.model.sequential_recommender import CORE
 import logging
 from logging import getLogger
 from recbole.config import Config
@@ -37,12 +38,12 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    'FPMC': {
-        'parameter_dict': {
-            'train_batch_size': 4096,
-        },
-        'model': FPMC
-    },
+    # 'FPMC': {
+    #     'parameter_dict': {
+    #         'train_batch_size': 4096,
+    #     },
+    #     'model': FPMC
+    # },
     # 'GRU4Rec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -64,27 +65,20 @@ model_dict = {
     #     },
     #     'model': NARM
     # },
-    # 'STAMP': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None,
-    #     },
-    #     'model': STAMP
-    # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    # 'SASRecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRecF
-    # },
+    'STAMP': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None,
+        },
+        'model': STAMP
+    },
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -92,7 +86,7 @@ model_dict = {
     #         'train_batch_size': 4096
     #     },
     #     'model': SRGNN
-    # }
+    # },
 }
 
 dataset_dir = Path("dataset")
@@ -109,8 +103,12 @@ for dataset_name in dataset_dict.keys():
 
 for dataset_name in dataset_dict.keys():
     if not os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
+        base_dataset = dataset_name.split("__")[0]
+        template_yaml = f"recbole/properties/dataset/{base_dataset}.yaml"
+        if not os.path.exists(template_yaml):
+            template_yaml = 'recbole/properties/dataset/30music.yaml'
         shutil.copy(
-            'recbole/properties/dataset/30music.yaml', 
+            template_yaml, 
             f'recbole/properties/dataset/{dataset_name}.yaml'
         )
 
@@ -214,8 +212,6 @@ for model_name in model_dict.keys():
             init_logger(config)
             if not logger.handlers:
                 logger.addHandler(logging.StreamHandler())
-
-            logger.info(f"Wznowienie uczenia ('dokręcanie śruby') dla {model_name} na {dataset_name} (dotychczasowa epoka w checkpoincie: {last_epoch + 1}/20)...")
 
             dataset = create_dataset(config)
             train_data, valid_data, test_data = data_preparation(config, dataset)

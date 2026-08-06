@@ -49,11 +49,12 @@ OUTPUT_FORMATS = ("png", "pdf")
 def _setup_plot_style():
     """Configure matplotlib and seaborn for publication-quality output."""
     sns.set_theme(style="ticks", context="paper", font_scale=1.1)
+    sns.set_palette("colorblind")
 
     mpl.rcParams.update({
         # Typography
         "font.family": "serif",
-        "font.serif": ["STIXGeneral", "Times New Roman", "DejaVu Serif"],
+        "font.serif": ["Times New Roman", "DejaVu Serif", "STIXGeneral", "serif"],
         "mathtext.fontset": "stix",
         "font.size": 11,
         "axes.titlesize": 12,
@@ -455,7 +456,7 @@ def _detect_format(file_path):
     return "tsv"
 
 
-def analyze(file_path, output_dir, fmt=None):
+def analyze(file_path, output_dir, fmt=None, label=None):
     """Run the full analysis pipeline.
 
     Parameters
@@ -466,6 +467,8 @@ def analyze(file_path, output_dir, fmt=None):
         Directory where plots will be saved.
     fmt : str or None
         ``"idomaar"`` or ``"tsv"``.  Auto-detected from extension if *None*.
+    label : str or None
+        Custom label for plot titles and text summaries.
     """
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -474,9 +477,11 @@ def analyze(file_path, output_dir, fmt=None):
     if fmt is None:
         fmt = _detect_format(file_path)
 
-    parser_fn, label = _FORMAT_PARSERS[fmt]
+    parser_fn, default_label = _FORMAT_PARSERS[fmt]
+    if label is None:
+        label = default_label
 
-    print(f"Analysing {file_path} (format: {fmt}) ...\n")
+    print(f"Analysing {file_path} (format: {fmt}, label: {label}) ...\n")
     stats = parser_fn(file_path)
 
     if not stats.session_lengths:
@@ -732,6 +737,10 @@ if __name__ == "__main__":
         "--check-genres", action="store_true",
         help="Run standalone genre coherence analysis"
     )
+    parser.add_argument(
+        "--label", type=str, default=None,
+        help="Custom label for plot titles and text summary (e.g. LastFM-1K)"
+    )
 
     args = parser.parse_args()
 
@@ -749,7 +758,7 @@ if __name__ == "__main__":
         elif args.check_genres:
             analyze_genre_coherence(args.file)
         else:
-            analyze(args.file, args.out, args.fmt)
+            analyze(args.file, args.out, args.fmt, args.label)
     else:
         # Default fallback to checking dataset_processed/sessions or dataset_raw/sessions
         candidates = ["dataset_processed/sessions", "dataset_raw/sessions", "sessions.tsv"]

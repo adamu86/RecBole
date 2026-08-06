@@ -145,14 +145,37 @@ class Trainer(AbstractTrainer):
         self.item_tensor = None
         self.tot_item_num = None
 
-        # Tag-based Jaccard reranking parameters
-        raw_topk = self.config.final_config_dict.get("rerank_topk", None)
-        if raw_topk is None or str(raw_topk).strip().lower() == "none":
-            self.rerank_topk = None
-        else:
-            self.rerank_topk = int(raw_topk)
+
+
+
+
+
+
+
+
+
+        # parametr z pliku konfiguracyjnego określający ile najlepszych przewidywanych utworów jest branych pod uwagę podczas rerankingu
+        conf_topk = self.config.final_config_dict.get("rerank_topk", None)
+
+        # jeśli topk w pliku konf. jest mniejsze równe 0 lub None to nic nie robimy
+        self.rerank_topk = None if conf_topk is None or str(conf_topk).strip().lower() == "none" or conf_topk <= 0 else int(conf_topk)
+        
+        # waga (siła) premii
         self.rerank_weight = float(self.config.final_config_dict.get("rerank_weight", 1.0))
-        self.item_tag_sets = None
+
+        # nazwa kolumny cech, określona w pliku konfiguracyjnym, na podstawie której rerankujemy
+        self.rerank_field = str(self.config.final_config_dict.get("rerank_field", "feature"))
+
+        # pole do przechowywania zbiorów cech
+        self.item_feature_sets = None
+
+
+
+
+
+
+
+
 
     def _build_optimizer(self, **kwargs):
         r"""Init the Optimizer
@@ -608,18 +631,24 @@ class Trainer(AbstractTrainer):
         if self.config["eval_type"] == EvaluatorType.RANKING:
             self.tot_item_num = eval_data._dataset.item_num
 
-        # Build item tag sets for Jaccard reranking (once per evaluation)
-        rerank_enabled = False
-        if self.rerank_topk is not None and hasattr(eval_data, '_dataset'):
-            dataset = eval_data._dataset
-            if (hasattr(dataset, 'item_feat') and dataset.item_feat is not None
-                    and 'item_tags' in dataset.item_feat):
-                self._build_item_tag_sets(dataset)
-                rerank_enabled = True
-                self.logger.info(
-                    f"Tag-based Jaccard reranking enabled: "
-                    f"topk={self.rerank_topk}, weight={self.rerank_weight}"
-                )
+
+
+
+
+
+
+
+
+        # czy reranking włączony 
+        rerank_enabled = self._init_reranking(eval_data)
+
+
+
+
+
+
+
+
 
         iter_data = (
             tqdm(
@@ -637,11 +666,25 @@ class Trainer(AbstractTrainer):
             num_sample += len(batched_data)
             interaction, scores, positive_u, positive_i = eval_func(batched_data)
 
-            # Apply tag-based Jaccard reranking to scores before evaluation
+
+
+
+
+
+
+
+
+            # zastosowanie rerankingu (jeśli jest włączony) na predykcjach modelu
             if rerank_enabled and "item_id_list" in interaction:
-                scores = self._rerank_scores(
-                    scores, self._compute_session_tag_profile(interaction)
-                )
+                scores = self._rerank_scores(scores, self._session_feature_profiles(interaction))
+
+
+
+
+
+
+
+
 
             if self.gpu_available and show_progress:
                 iter_data.set_postfix_str(
@@ -700,103 +743,149 @@ class Trainer(AbstractTrainer):
             result_list.append(result)
         return torch.cat(result_list, dim=0)
 
-    def _build_item_tag_sets(self, dataset):
-        """Build per-item tag sets from dataset.item_feat for Jaccard reranking.
 
-        Converts the item_tags token_seq tensor into a list of Python sets,
-        indexed by internal item_id, for efficient Jaccard similarity computation.
 
-        Args:
-            dataset: The RecBole dataset object with item_feat containing item_tags.
-        """
-        item_tags_tensor = dataset.item_feat["item_tags"]  # (num_items, max_tag_len)
-        self.item_tag_sets = []
-        for i in range(item_tags_tensor.size(0)):
-            tags = item_tags_tensor[i]
-            tag_set = set(tags[tags != 0].tolist())  # exclude padding (0)
-            self.item_tag_sets.append(tag_set)
-        avg_tags = sum(len(s) for s in self.item_tag_sets) / max(len(self.item_tag_sets), 1)
+
+
+
+
+
+
+    def _init_reranking(self, eval_data):
+        # jeśli topk nieustawiony to nie kontynuujemy mechanizmu
+        if self.rerank_topk is None or not hasattr(eval_data, '_dataset'):
+            return False
+
+        # wyciągamy zbiór testowy
+        dataset = eval_data._dataset
+
+        # dataset musi mieć cechy elementów
+        if not hasattr(dataset, 'item_feat') or dataset.item_feat is None:
+            return False
+            
+        # pobieramy nazwe kolumny z feature'ami do rerankingu
+        field = self.rerank_field
+        if field is None or field not in dataset.item_feat:
+            return False
+
+        # pobieramy wektor cech
+        features = dataset.item_feat[field]
+
+        # każdy element uzyskuje swoje cechy
+        self.item_feature_sets = [set(row[row != 0].tolist()) for row in features]
+
+        # log
         self.logger.info(
-            f"Built tag sets for {len(self.item_tag_sets)} items "
-            f"(avg tags per item: {avg_tags:.1f})"
+            f"Reranking on '{field}': {len(self.item_feature_sets)} items, "
+            f"topk={self.rerank_topk}, weight={self.rerank_weight}"
         )
 
-    def _compute_session_tag_profile(self, interaction):
-        """Compute union of artist tags for items in each session's listening history.
+        # włączamy reranking
+        return True
 
-        For each session in the batch, collects all unique tags from the items
-        the user has already listened to, creating a comprehensive tag profile.
+    def _session_feature_profiles(self, interaction):
+        # historia odsłuchanych utworów per sesja, w bieżącym batchu
+        session_items = interaction["item_id_list"].cpu().numpy()
 
-        Args:
-            interaction: Batch Interaction containing item_id_list and item_length.
+        # ile realnych utworów ma każda sesja (reszta to padding zerami)
+        session_lengths = interaction["item_length"].cpu().numpy()
 
-        Returns:
-            list[set]: Tag profile (union of tag sets) for each session in batch.
-        """
-        item_id_list = interaction["item_id_list"].cpu().numpy()  # (batch, max_hist_len)
-        item_length = interaction["item_length"].cpu().numpy()     # (batch,)
-
+        # liczba wszystkich itemów w datasecie, do walidacji ID
+        num_items = len(self.item_feature_sets)
+        
+        # miejsce na profile cech dla każdej sesji
         profiles = []
-        for i in range(item_id_list.shape[0]):
-            length = item_length[i]
-            history_ids = item_id_list[i, :length]
-            session_tags = set()
-            for iid in history_ids:
-                if 0 < iid < len(self.item_tag_sets):
-                    session_tags.update(self.item_tag_sets[iid])
-            profiles.append(session_tags)
+
+        # przechodzimy po każdej sesji w batchu osobno
+        for session_idx in range(session_items.shape[0]):
+            # słownik na cechy sesji
+            session_features = set()
+
+            # obcinamy padding, zostawiamy tylko realną historię tej sesji
+            true_sequence = session_items[session_idx, :session_lengths[session_idx]]
+
+            # zbieramy cechy wszystkich utworów z historii do jednego wspólnego zbioru
+            for item_id in true_sequence:
+                if 0 < item_id < num_items:
+                    session_features.update(self.item_feature_sets[item_id])
+
+            # zapisujemy gotowy profil tagowy tej sesji
+            profiles.append(session_features)
+
         return profiles
 
-    def _rerank_scores(self, scores, session_tag_profiles):
-        """Apply Jaccard tag-based reranking to top-K candidates in a vectorized manner."""
+    def _rerank_scores(self, scores, session_feature_profiles):
         import numpy as np
-        
-        rerank_topk = self.rerank_topk
-        rerank_weight = self.rerank_weight
-        batch_size = scores.size(0)
-        actual_k = min(rerank_topk, scores.size(1))
 
-        # Get top-K indices
-        _, topk_indices = torch.topk(scores, actual_k, dim=-1)
-        
-        # Move indices to CPU for fast iteration
-        topk_indices_cpu = topk_indices.cpu().numpy()
+        batch_size = scores.size(0)
+
+        # rerankujemy tylko top-K kandydatów, nie całą listę itemów
+        actual_k = min(self.rerank_topk, scores.size(1))
+
+        # wyciągamy indeksy (ID itemów) dla top-K najlepszych kandydatów każdej sesji
+        _, topk_idx = torch.topk(scores, actual_k, dim=-1)
+        topk_idx_cpu = topk_idx.cpu().numpy()
+
+        # tu będziemy zbierać premię (boost) dla każdego kandydata z top-K
         boosts = np.zeros((batch_size, actual_k), dtype=np.float32)
 
-        for i in range(batch_size):
-            session_tags = session_tag_profiles[i]
+        # maks. dozwolone ID itemu
+        num_items = len(self.item_feature_sets)
+
+        # liczymy podobieństwo Jaccarda między profilem sesji a tagami każdego kandydata
+        for session_idx in range(batch_size):
+            # profil cech sesji spod kolejnego session_idx
+            session_tags = session_feature_profiles[session_idx]
+
+            # jeśli sesja bez żadnych tagów, to nie ma czego porównywać
             if not session_tags:
                 continue
 
-            for j in range(actual_k):
-                item_id = topk_indices_cpu[i, j]
-                if item_id <= 0 or item_id >= len(self.item_tag_sets):
-                    continue
-                item_tags = self.item_tag_sets[item_id]
-                if not item_tags:
-                    continue
-                
-                # Fast Jaccard on python sets
-                intersection = len(session_tags.intersection(item_tags))
-                if intersection == 0:
-                    continue
-                union = len(session_tags) + len(item_tags) - intersection
-                jaccard = intersection / union
-                
-                boosts[i, j] = rerank_weight * jaccard
+            for rank in range(actual_k):
+                # kolejny kandydat z rekomendacji dla bieżącej sesji w pętli
+                candidate_id = topk_idx_cpu[session_idx, rank]
 
-        # Convert computed boosts to a tensor on the same device as scores
-        boosts_tensor = torch.from_numpy(boosts).to(scores.device)
+                # 0 to padding, ID > num_items to błąd
+                if candidate_id <= 0 or candidate_id >= num_items:
+                    continue
 
-        # Vectorized update: new_score = score + abs(score) * boost
-        # This matches both:
-        # positive score: score * (1 + boost)
-        # negative score: score + abs(score) * boost
-        topk_scores = torch.gather(scores, 1, topk_indices)
-        new_topk_scores = topk_scores + torch.abs(topk_scores) * boosts_tensor
-        scores.scatter_(1, topk_indices, new_topk_scores)
+                # pobieramy profil tagowy kandydata
+                candidate_tags = self.item_feature_sets[candidate_id]
 
+                # ilu wspólnych tagów ma kandydat z sesją
+                overlap = len(session_tags & candidate_tags)
+
+                if overlap:
+                    # Jaccard = część wspólna / suma zbiorów, przemnożona przez wagę (siłę premii)
+                    jaccard = overlap / (len(session_tags) + len(candidate_tags) - overlap)
+                    boosts[session_idx, rank] = self.rerank_weight * jaccard
+
+        # z powrotem na tensor (z cpu na gpu)
+        boosts = torch.from_numpy(boosts).to(scores.device)
+
+        # wyciągamy oryginalne score'y tylko dla kandydatów z top-K
+        topk_scores = scores.gather(1, topk_idx)
+
+        # przesuwamy score'y tak, żeby minimum w każdym wierszu było >= 0 
+        # (bo model może generować ujemne wyniki - przesunięcie to zabezpieczenie)
+        shift = topk_scores.min(dim=1, keepdim=True).values.clamp(max=0)
+        topk_shifted = topk_scores - shift
+
+        # aplikujemy boost mnożnikowo, potem wracamy do oryginalnej skali
+        boosted_scores = topk_shifted * (1.0 + boosts) + shift
+
+        # podmieniamy zboostowane wartości z powrotem w oryginalnym tensorze score'ów
+        scores.scatter_(1, topk_idx, boosted_scores)
+
+        # finalne wyniki
         return scores
+
+
+
+
+
+
+
 
 
 class KGTrainer(Trainer):
