@@ -39,6 +39,9 @@ for _attr, _type in [
 
 model_dict = {
     'FPMC': {
+        'parameter_dict': {
+                    
+        },
         'model': FPMC
     },
     'GRU4Rec': {
