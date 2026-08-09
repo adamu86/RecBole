@@ -16,7 +16,7 @@ params=(
 
 for p in "${params[@]}"; do
     read from to <<< "$p"
-    python3 process_30music.py --days_from_max $from --days_to_max $to --min_track_playcount 5
+    python3 process_30music.py --days_from_max $from --days_to_max $to
 done
 
 python process_lastfm.py --all_splits

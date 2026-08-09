@@ -2,6 +2,6 @@ embedding_size: 64              # (int) The embedding size of items.
 hidden_size: 128                # (int) The number of features in the hidden state. 
 num_layers: 1                   # (int) The number of layers in GRU.
 dropout_prob: 0.3               # (float) The dropout rate. 
-selected_features: ['track_tags'] # (list of str) The list of selected item features available in the dataset.
+selected_features: ['artist_tags'] # (list of str) The list of selected item features available in the dataset.
 pooling_mode: 'sum'             # (str) The intra-feature pooling mode. Range in ['max', 'mean', 'sum'].
 loss_type: 'CE'                 # (str) The type of loss function. Range in ['BPR', 'CE'].

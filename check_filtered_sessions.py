@@ -7,7 +7,7 @@ Skrypt i funkcja do dokładnego wyznaczania liczby sesji odpadających z SUROWYC
 30Music oraz LastFM-1K w określonym oknie czasowym:
 1. Sesje o długości > 100.
 2. Sesje o długości < 2 (1-elementowe).
-3. Sesje o czasie trwania < 30 sekund i długości >= 2 (wieloelementowe, lecz zbyt krótkie).
+3. Sesje o czasie trwania < 60 sekund i długości >= 2 (wieloelementowe, lecz zbyt krótkie).
 
 Przetwarzanie odbywa się bezpośrednio z surowych plików źródłowych:
 - 30Music: dataset_raw/sessions.idomaar (tworzenie pod-sesji z przerwą > 800s)
@@ -92,22 +92,22 @@ def _split_into_sub_sessions(tracks):
 
 
 def evaluate_sub_sessions(sub_sessions, lower_bound=None, upper_bound=None,
-                           max_length=100, min_duration=30, min_length=2):
+                           max_length=100, min_duration=60, min_length=2):
     """Ewaluuje utworzone surowe pod-sesje pod kątem okna czasowego oraz filtrów długości/czasu.
 
     Rozdzielenie na wzajemnie rozłączne kategorie:
     - Sesje o długości > 100
     - Sesje o długości < 2 (1-elementowe)
-    - Sesje o czasie trwania < 30s i długości >= 2 (wieloelementowe, lecz zbyt krótkie)
-    - Sesje prawidłowe (2 <= długość <= 100 oraz czas trwania >= 30s)
+    - Sesje o czasie trwania < 60s i długości >= 2 (wieloelementowe, lecz zbyt krótkie)
+    - Sesje prawidłowe (2 <= długość <= 100 oraz czas trwania >= 60s)
     """
     total_raw_sub_sessions = len(sub_sessions)
     total_in_window = 0
 
     dropped_gt_max_len = 0
     dropped_lt_min_len = 0
-    dropped_lt_30s_ge_2 = 0
-    dropped_lt_30s_total = 0
+    dropped_lt_60s_ge_2 = 0
+    dropped_lt_60s_total = 0
     valid_sessions = 0
 
     for sub in sub_sessions:
@@ -126,22 +126,22 @@ def evaluate_sub_sessions(sub_sessions, lower_bound=None, upper_bound=None,
         duration = (playstarts[-1] - playstarts[0]) if len(playstarts) > 0 else 0
 
         if duration < min_duration:
-            dropped_lt_30s_total += 1
+            dropped_lt_60s_total += 1
 
         if length > max_length:
             dropped_gt_max_len += 1
         elif length < min_length:
             dropped_lt_min_len += 1
         elif duration < min_duration:
-            # Długość jest >= 2 oraz <= 100, ale czas trwania < 30 sekund
-            dropped_lt_30s_ge_2 += 1
+            # Długość jest >= 2 oraz <= 100, ale czas trwania < 60 sekund
+            dropped_lt_60s_ge_2 += 1
         else:
             valid_sessions += 1
 
     pct_gt_max_len = (dropped_gt_max_len / total_in_window * 100) if total_in_window > 0 else 0.0
     pct_lt_min_len = (dropped_lt_min_len / total_in_window * 100) if total_in_window > 0 else 0.0
-    pct_lt_30s_ge_2 = (dropped_lt_30s_ge_2 / total_in_window * 100) if total_in_window > 0 else 0.0
-    pct_lt_30s_total = (dropped_lt_30s_total / total_in_window * 100) if total_in_window > 0 else 0.0
+    pct_lt_60s_ge_2 = (dropped_lt_60s_ge_2 / total_in_window * 100) if total_in_window > 0 else 0.0
+    pct_lt_60s_total = (dropped_lt_60s_total / total_in_window * 100) if total_in_window > 0 else 0.0
     pct_valid = (valid_sessions / total_in_window * 100) if total_in_window > 0 else 0.0
 
     return {
@@ -151,10 +151,10 @@ def evaluate_sub_sessions(sub_sessions, lower_bound=None, upper_bound=None,
         "pct_gt_100": pct_gt_max_len,
         "dropped_lt_2_items": dropped_lt_min_len,
         "pct_lt_2_items": pct_lt_min_len,
-        "dropped_lt_30s_ge_2": dropped_lt_30s_ge_2,
-        "pct_lt_30s_ge_2": pct_lt_30s_ge_2,
-        "dropped_lt_30s_total": dropped_lt_30s_total,
-        "pct_lt_30s_total": pct_lt_30s_total,
+        "dropped_lt_60s_ge_2": dropped_lt_60s_ge_2,
+        "pct_lt_60s_ge_2": pct_lt_60s_ge_2,
+        "dropped_lt_60s_total": dropped_lt_60s_total,
+        "pct_lt_60s_total": pct_lt_60s_total,
         "valid_sessions": valid_sessions,
         "pct_valid": pct_valid,
     }
@@ -241,7 +241,7 @@ def analyze_30music_raw(days=150, days_from_max=None, days_to_max=None,
         lower_bound=lower_bound,
         upper_bound=upper_bound,
         max_length=100,
-        min_duration=30,
+        min_duration=60,
         min_length=2
     )
 
@@ -318,7 +318,7 @@ def analyze_lastfm_raw(input_path="dataset_raw/userid-timestamp-artid-artname-tr
         lower_bound=lower_bound,
         upper_bound=upper_bound,
         max_length=100,
-        min_duration=30,
+        min_duration=60,
         min_length=2
     )
 
@@ -337,10 +337,10 @@ def _print_report(dataset_label, file_path, res):
     print("-" * 80)
     print(f"❌ Sesje o długości > 100:                  {res['dropped_gt_100']:>12,} ({res['pct_gt_100']:>6.2f}%)")
     print(f"❌ Sesje o długości < 2 (1-elementowe):     {res['dropped_lt_2_items']:>12,} ({res['pct_lt_2_items']:>6.2f}%)")
-    print(f"❌ Sesje < 30s przy długości ≥ 2:           {res['dropped_lt_30s_ge_2']:>12,} ({res['pct_lt_30s_ge_2']:>6.2f}%)")
-    print(f"   (Łącznie wszystkich sesji < 30s:        {res['dropped_lt_30s_total']:>12,} [{res['pct_lt_30s_total']:>6.2f}%])")
+    print(f"❌ Sesje < 60s przy długości ≥ 2:           {res['dropped_lt_60s_ge_2']:>12,} ({res['pct_lt_60s_ge_2']:>6.2f}%)")
+    print(f"   (Łącznie wszystkich sesji < 60s:        {res['dropped_lt_60s_total']:>12,} [{res['pct_lt_60s_total']:>6.2f}%])")
     print("-" * 80)
-    print(f"✅ Sesje prawidłowe (długość 2-100 i czas ≥ 30s): {res['valid_sessions']:>12,} ({res['pct_valid']:>6.2f}%)")
+    print(f"✅ Sesje prawidłowe (długość 2-100 i czas ≥ 60s): {res['valid_sessions']:>12,} ({res['pct_valid']:>6.2f}%)")
     print("=" * 80)
 
 
