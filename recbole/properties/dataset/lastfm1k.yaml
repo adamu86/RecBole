@@ -97,15 +97,12 @@ metrics: [
     "Recall",
     "Precision",
     "MRR",
-    "MAP",
-    "Hit",
     "NDCG",
     "AveragePopularity",
-    "ItemCoverage",
-    "GiniIndex",
+    "ItemCoverage"
   ] # (list or str) Evaluation metrics.
-topk: [5, 10, 15, 20] # (list or int or None) The value of k for topk evaluation metrics.
-valid_metric: MRR@10 # (str) The evaluation metric for early stopping.
+topk: [5, 10, 20] # (list or int or None) The value of k for topk evaluation metrics.
+valid_metric: NDCG@20 # (str) The evaluation metric for early stopping.
 valid_metric_bigger: True # (bool) Whether to take a bigger valid metric value as a better result.
 eval_batch_size: 2048 # (int) The evaluation batch size.
-metric_decimal_place: 4 # (int) The decimal place of metric scores.
+metric_decimal_place: 5 # (int) The decimal place of metric scores.

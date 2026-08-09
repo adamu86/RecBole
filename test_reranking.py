@@ -91,40 +91,66 @@ def main():
     parser.add_argument("--model", type=str, default="GRU4RecF", help="Model name (default: GRU4RecF)")
     parser.add_argument("--field", type=str, default="artist_tags", help="Tag field for Jaccard reranking (default: artist_tags)")
     parser.add_argument("--topk", type=int, default=100, help="Rerank topk (default: 100)")
-    parser.add_argument("--weight", type=float, default=1.0, help="Rerank weight (default: 1.0)")
+    parser.add_argument("--weight", type=float, default=0.5, help="Rerank weight (default: 1.0)")
+    parser.add_argument("--filter", type=str, default=None, help="Optional substring filter for dataset directory name (e.g. 'lastfm1k' or 'pcount[5]')")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing evaluation .json file if it exists")
     args = parser.parse_args()
 
     model_name = args.model
     rerank_field = args.field
     rerank_topk = args.topk
     rerank_weight = args.weight
+    ds_filter = args.filter
+    overwrite = args.overwrite
 
     saved_dirs = glob.glob(f"saved/{model_name}_*")
+    if ds_filter:
+        saved_dirs = [d for d in saved_dirs if ds_filter in d]
     saved_dirs.sort()
 
     if not saved_dirs:
         print(f"No saved directories found matching saved/{model_name}_*")
         return
 
-    all_comparisons = {}
-
     for save_dir in saved_dirs:
         dataset_name = os.path.basename(save_dir).replace(f"{model_name}_", "")
-        print("\n" + "#"*80)
-        print(f"  EVALUATING DATASET: {dataset_name}")
-        print(f"  RERANKING FIELD: {rerank_field}")
-        print("#"*80)
+        out_json = f"{save_dir}/rerank_{rerank_field}_comparison.json"
+        lock_file = f"{save_dir}/rerank_{rerank_field}.lock"
         
+        if os.path.exists(out_json) and not overwrite:
+            print("\n" + "#"*80)
+            print(f"  SKIPPING DATASET: {dataset_name} ({out_json} already exists)")
+            print("#"*80)
+            continue
+
         checkpoint_files = glob.glob(glob.escape(save_dir) + f"/{model_name}-*.pth")
         if not checkpoint_files:
             print(f"No checkpoint found in {save_dir}. Skipping...")
             continue
         checkpoint_file = max(checkpoint_files, key=os.path.getmtime)
+
+        # Atomic lock file creation for multi-terminal support
+        if not overwrite:
+            try:
+                with open(lock_file, 'x') as f:
+                    f.write(str(os.getpid()))
+            except FileExistsError:
+                print("\n" + "#"*80)
+                print(f"  SKIPPING DATASET: {dataset_name} (in progress by another terminal: {lock_file})")
+                print("#"*80)
+                continue
+
+        print("\n" + "#"*80)
+        print(f"  EVALUATING DATASET: {dataset_name}")
+        print(f"  RERANKING FIELD: {rerank_field}")
+        print("#"*80)
         print(f"Using checkpoint: {checkpoint_file}")
 
         yaml_dst = f"recbole/properties/dataset/{dataset_name}.yaml"
         if not os.path.exists(yaml_dst):
-            shutil.copy('recbole/properties/dataset/30music.yaml', yaml_dst)
+            template_yaml = 'recbole/properties/dataset/lastfm1k.yaml'
+            if os.path.exists(template_yaml):
+                shutil.copy(template_yaml, yaml_dst)
 
         try:
             print("\n  [1/2] BASELINE: Evaluation WITHOUT reranking")
@@ -184,7 +210,6 @@ def main():
                 "reranking": {k: float(v) for k, v in rerank_result.items()},
                 "config": {"rerank_topk": rerank_topk, "rerank_weight": rerank_weight, "rerank_field": rerank_field}
             }
-            all_comparisons[dataset_name] = comparison
 
             out_json = f"{save_dir}/rerank_{rerank_field}_comparison.json"
             with open(out_json, 'w') as f:
@@ -197,12 +222,32 @@ def main():
 
         finally:
             if os.path.exists(yaml_dst):
-                os.remove(yaml_dst)
+                try:
+                    os.remove(yaml_dst)
+                except OSError:
+                    pass
+            if os.path.exists(lock_file):
+                try:
+                    os.remove(lock_file)
+                except OSError:
+                    pass
+
+    # Aggregate all completed comparison JSONs across all datasets
+    all_comparisons = {}
+    for save_dir in saved_dirs:
+        ds_name = os.path.basename(save_dir).replace(f"{model_name}_", "")
+        res_json = f"{save_dir}/rerank_{rerank_field}_comparison.json"
+        if os.path.exists(res_json):
+            try:
+                with open(res_json, 'r') as f:
+                    all_comparisons[ds_name] = json.load(f)
+            except Exception as e:
+                pass
 
     out_summary = f"saved/{model_name}_all_rerank_{rerank_field}_comparisons.json"
     with open(out_summary, 'w') as f:
         json.dump(all_comparisons, f, indent=2)
-    print(f"\nAll results saved to {out_summary}")
+    print(f"\nAll completed results saved to {out_summary} (total {len(all_comparisons)} datasets)")
 
 if __name__ == "__main__":
     main()

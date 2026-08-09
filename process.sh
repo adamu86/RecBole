@@ -21,6 +21,6 @@ done
 
 python process_lastfm.py --all_splits
 
-# python run_recbole.py
+python run_recbole.py
 
 # sed -i 's/\r$//' process.sh

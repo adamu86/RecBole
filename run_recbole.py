@@ -38,33 +38,30 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
-    #         'train_batch_size': 4096,
-    #     },
-    #     'model': FPMC
-    # },
-    # 'GRU4Rec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': GRU4Rec
-    # },
-    # 'GRU4RecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,  
-    #         'neg_sampling': None,
-    #     },
-    #     'model': GRU4RecF
-    # },
-    # 'NARM': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': NARM
-    # },
+    'FPMC': {
+        'model': FPMC
+    },
+    'GRU4Rec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
+        },
+        'model': GRU4Rec
+    },
+    'GRU4RecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,  
+            'neg_sampling': None,
+        },
+        'model': GRU4RecF
+    },
+    'NARM': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NARM
+    },
     'STAMP': {
         'parameter_dict': {
             'train_neg_sample_args': None,
@@ -79,14 +76,13 @@ model_dict = {
         },
         'model': SASRec
     },
-    # 'SRGNN': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None,
-    #         'train_batch_size': 4096
-    #     },
-    #     'model': SRGNN
-    # },
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
+    }
 }
 
 dataset_dir = Path("dataset")
@@ -168,7 +164,23 @@ for model_name in model_dict.keys():
             torch.cuda.empty_cache()
             continue
 
-# dokręcanie śruby - kontynuacja dla modeli, które nie ukończyły 20 epok (przerwały uczenie)
+def is_early_stopped(model_name, dataset_name, ckpt=None):
+    if ckpt is not None and (ckpt.get('early_stop') or ckpt.get('early_stopping')):
+        return True
+
+    log_dir = Path("log") / model_name
+    if log_dir.exists():
+        pattern = f"{model_name}-{dataset_name}-*.log"
+        for log_file in log_dir.glob(pattern):
+            try:
+                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                    if "Finished training" in content:
+                        return True
+            except Exception:
+                pass
+    return False
+
 for model_name in model_dict.keys():
     for dataset_name in dataset_dict.keys():
         checkpoint_dir = f"saved/{model_name}_{dataset_name}"
@@ -181,12 +193,14 @@ for model_name in model_dict.keys():
 
         latest = max(checkpoints, key=os.path.getmtime)
 
-        # Sprawdzenie liczby ukończonych epok w pliku checkpointu
         try:
             ckpt = torch.load(latest, map_location='cpu')
             last_epoch = ckpt.get('epoch', -1)
-            # Epoki w RecBole są indeksowane od 0 (epoka 19 to 20. epoka completed).
             if last_epoch >= 19:
+                continue
+
+            if is_early_stopped(model_name, dataset_name, ckpt):
+                logger.info(f"Model {model_name} na {dataset_name} został zakończony przez early stopping. Pomijanie douczania.")
                 continue
         except Exception as e:
             logger.warning(f"Błąd odczytu checkpointu {latest}: {e}")
