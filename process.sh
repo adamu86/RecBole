@@ -1,12 +1,8 @@
 #!/bin/bash
 
+# sed -i 's/\r$//' process.sh
+
 params=(
-    # non-overlapping, gap=60
-    # "365 305"
-    # "305 245"
-    # "245 185"
-    # "185 125"
-    # "125 65"
     "215 185"
     "185 155"
     "155 125"
@@ -22,5 +18,3 @@ done
 python process_lastfm.py --all_splits
 
 python run_recbole.py
-
-# sed -i 's/\r$//' process.sh
