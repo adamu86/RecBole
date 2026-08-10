@@ -111,22 +111,58 @@ for dataset_name in dataset_dict.keys():
             f'recbole/properties/dataset/{dataset_name}.yaml'
         )
 
+def is_early_stopped(model_name, dataset_name, ckpt=None):
+    if ckpt is not None and (ckpt.get('early_stop') or ckpt.get('early_stopping')):
+        return True
+
+    log_dir = Path("log") / model_name
+    if log_dir.exists():
+        pattern = f"{model_name}-{dataset_name}-*.log"
+        for log_file in log_dir.glob(pattern):
+            try:
+                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                    if "Finished training" in content:
+                        return True
+            except Exception:
+                pass
+    return False
+
 for model_name in model_dict.keys():
     for dataset_name in dataset_dict.keys():
+        checkpoint_dir = f"saved/{model_name}_{dataset_name}"
+        if not os.path.exists(checkpoint_dir):
+            continue
+
+        checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
+        if not checkpoints:
+            continue
+
+        latest = max(checkpoints, key=os.path.getmtime)
+
+        try:
+            ckpt = torch.load(latest, map_location='cpu')
+            last_epoch = ckpt.get('epoch', -1)
+            if last_epoch >= 19:
+                continue
+
+            if is_early_stopped(model_name, dataset_name, ckpt):
+                continue
+        except Exception as e:
+            continue
+
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
             handler.close()
 
-        if os.path.exists(f"saved/{model_name}_{dataset_name}"):
-            continue
-
         try:
             config = Config(
-                model=model_name, 
-                dataset=dataset_name, 
+                model=model_name,
+                dataset=dataset_name,
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
-                    'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
+                    'checkpoint_dir': checkpoint_dir,
+                    'epochs': 30,
                     'save_dataset': False
                 }
             )
@@ -134,38 +170,31 @@ for model_name in model_dict.keys():
             init_seed(config['seed'], config['reproducibility'])
             init_logger(config)
             if not logger.handlers:
-                c_handler = logging.StreamHandler()
-                c_handler.setLevel(logging.INFO)
-                logger.addHandler(c_handler)
-            
-            logger.info(config)
-            dataset = create_dataset(config)
-            logger.info(dataset)
+                logger.addHandler(logging.StreamHandler())
 
+            dataset = create_dataset(config)
             train_data, valid_data, test_data = data_preparation(config, dataset)
             model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
-            logger.info(model)
 
             trainer = Trainer(config, model)
+            trainer.resume_checkpoint(latest)
+
             best_valid_score, best_valid_result = trainer.fit(
-                train_data,
-                valid_data,
-                saved=True,
-                show_progress=True
+                train_data, valid_data, saved=True, show_progress=True
             )
             test_result = trainer.evaluate(test_data)
 
-            with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
+            with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
                 json.dump({"test_result": test_result}, f, indent=2)
 
             del model, trainer, dataset, train_data, valid_data, test_data
             gc.collect()
             torch.cuda.empty_cache()
+
         except Exception as e:
-            logger.error(f"Failed {model_name} on {dataset_name}: {e}")
             traceback.print_exc()
             torch.cuda.empty_cache()
-            continue
+
 
 for dataset_name in dataset_dict.keys():
     if os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):

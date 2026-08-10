@@ -41,11 +41,6 @@ from recbole.trainer import Trainer
 from recbole.utils import get_model, init_seed, init_logger
 
 def load_data_and_model_with_field_remapping(model_file, target_field='track_tags'):
-    """Load dataset, dataloaders, and model checkpoint with automatic field remapping.
-    
-    If checkpoint was saved with 'item_tags', remaps feature references to 'target_field'
-    (e.g., 'track_tags') to match the dataset .item file headers on disk.
-    """
     checkpoint = torch.load(model_file, weights_only=False)
     config = checkpoint["config"]
 
