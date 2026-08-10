@@ -92,7 +92,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and p.name.startswith("30music")
+    if p.is_dir() and p.name.startswith("lastfm1k")
 }
 logger = getLogger()
 
@@ -167,92 +167,92 @@ for model_name in model_dict.keys():
             torch.cuda.empty_cache()
             continue
 
-def is_early_stopped(model_name, dataset_name, ckpt=None):
-    if ckpt is not None and (ckpt.get('early_stop') or ckpt.get('early_stopping')):
-        return True
+# def is_early_stopped(model_name, dataset_name, ckpt=None):
+#     if ckpt is not None and (ckpt.get('early_stop') or ckpt.get('early_stopping')):
+#         return True
 
-    log_dir = Path("log") / model_name
-    if log_dir.exists():
-        pattern = f"{model_name}-{dataset_name}-*.log"
-        for log_file in log_dir.glob(pattern):
-            try:
-                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
-                    content = f.read()
-                    if "Finished training" in content:
-                        return True
-            except Exception:
-                pass
-    return False
+#     log_dir = Path("log") / model_name
+#     if log_dir.exists():
+#         pattern = f"{model_name}-{dataset_name}-*.log"
+#         for log_file in log_dir.glob(pattern):
+#             try:
+#                 with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+#                     content = f.read()
+#                     if "Finished training" in content:
+#                         return True
+#             except Exception:
+#                 pass
+#     return False
 
-for model_name in model_dict.keys():
-    for dataset_name in dataset_dict.keys():
-        checkpoint_dir = f"saved/{model_name}_{dataset_name}"
-        if not os.path.exists(checkpoint_dir):
-            continue
+# for model_name in model_dict.keys():
+#     for dataset_name in dataset_dict.keys():
+#         checkpoint_dir = f"saved/{model_name}_{dataset_name}"
+#         if not os.path.exists(checkpoint_dir):
+#             continue
 
-        checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
-        if not checkpoints:
-            continue
+#         checkpoints = list(Path(checkpoint_dir).glob("*.pth"))
+#         if not checkpoints:
+#             continue
 
-        latest = max(checkpoints, key=os.path.getmtime)
+#         latest = max(checkpoints, key=os.path.getmtime)
 
-        try:
-            ckpt = torch.load(latest, map_location='cpu')
-            last_epoch = ckpt.get('epoch', -1)
-            if last_epoch >= 19:
-                continue
+#         try:
+#             ckpt = torch.load(latest, map_location='cpu')
+#             last_epoch = ckpt.get('epoch', -1)
+#             if last_epoch >= 19:
+#                 continue
 
-            if is_early_stopped(model_name, dataset_name, ckpt):
-                logger.info(f"Model {model_name} na {dataset_name} został zakończony przez early stopping. Pomijanie douczania.")
-                continue
-        except Exception as e:
-            logger.warning(f"Błąd odczytu checkpointu {latest}: {e}")
-            continue
+#             if is_early_stopped(model_name, dataset_name, ckpt):
+#                 logger.info(f"Model {model_name} na {dataset_name} został zakończony przez early stopping. Pomijanie douczania.")
+#                 continue
+#         except Exception as e:
+#             logger.warning(f"Błąd odczytu checkpointu {latest}: {e}")
+#             continue
 
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-            handler.close()
+#         for handler in logging.root.handlers[:]:
+#             logging.root.removeHandler(handler)
+#             handler.close()
 
-        try:
-            config = Config(
-                model=model_name,
-                dataset=dataset_name,
-                config_dict={
-                    **model_dict[model_name]['parameter_dict'],
-                    'checkpoint_dir': checkpoint_dir,
-                    'epochs': 20,
-                    'save_dataset': False
-                }
-            )
+#         try:
+#             config = Config(
+#                 model=model_name,
+#                 dataset=dataset_name,
+#                 config_dict={
+#                     **model_dict[model_name]['parameter_dict'],
+#                     'checkpoint_dir': checkpoint_dir,
+#                     'epochs': 20,
+#                     'save_dataset': False
+#                 }
+#             )
 
-            init_seed(config['seed'], config['reproducibility'])
-            init_logger(config)
-            if not logger.handlers:
-                logger.addHandler(logging.StreamHandler())
+#             init_seed(config['seed'], config['reproducibility'])
+#             init_logger(config)
+#             if not logger.handlers:
+#                 logger.addHandler(logging.StreamHandler())
 
-            dataset = create_dataset(config)
-            train_data, valid_data, test_data = data_preparation(config, dataset)
-            model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
+#             dataset = create_dataset(config)
+#             train_data, valid_data, test_data = data_preparation(config, dataset)
+#             model = model_dict[model_name]['model'](config, train_data.dataset).to(config['device'])
 
-            trainer = Trainer(config, model)
-            trainer.resume_checkpoint(latest)
+#             trainer = Trainer(config, model)
+#             trainer.resume_checkpoint(latest)
 
-            best_valid_score, best_valid_result = trainer.fit(
-                train_data, valid_data, saved=True, show_progress=True
-            )
-            test_result = trainer.evaluate(test_data)
+#             best_valid_score, best_valid_result = trainer.fit(
+#                 train_data, valid_data, saved=True, show_progress=True
+#             )
+#             test_result = trainer.evaluate(test_data)
 
-            with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
-                json.dump({"test_result": test_result}, f, indent=2)
+#             with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
+#                 json.dump({"test_result": test_result}, f, indent=2)
 
-            del model, trainer, dataset, train_data, valid_data, test_data
-            gc.collect()
-            torch.cuda.empty_cache()
+#             del model, trainer, dataset, train_data, valid_data, test_data
+#             gc.collect()
+#             torch.cuda.empty_cache()
 
-        except Exception as e:
-            logger.error(f"Finetune/Wznowienie nie powiodło się dla {model_name} na {dataset_name}: {e}")
-            traceback.print_exc()
-            torch.cuda.empty_cache()
+#         except Exception as e:
+#             logger.error(f"Finetune/Wznowienie nie powiodło się dla {model_name} na {dataset_name}: {e}")
+#             traceback.print_exc()
+#             torch.cuda.empty_cache()
 
 
 for dataset_name in dataset_dict.keys():
