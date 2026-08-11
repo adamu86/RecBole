@@ -38,11 +38,18 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    'FPMC': {
-        'parameter_dict': {
+    # 'FPMC': {
+    #     'parameter_dict': {
                     
+    #     },
+    #     'model': FPMC
+    # },
+    'CORE': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
         },
-        'model': FPMC
+        'model': CORE
     },
     # 'GRU4Rec': {
     #     'parameter_dict': {
