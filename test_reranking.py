@@ -36,49 +36,9 @@ torch.load = _patched_torch_load
 
 import argparse
 
-from recbole.data import create_dataset, data_preparation
+from recbole.quick_start.quick_start import load_data_and_model
 from recbole.trainer import Trainer
-from recbole.utils import get_model, init_seed, init_logger
-
-def load_data_and_model_with_field_remapping(model_file, target_field='track_tags'):
-    checkpoint = torch.load(model_file, weights_only=False)
-    config = checkpoint["config"]
-
-    cfg_dict = config.final_config_dict if hasattr(config, 'final_config_dict') else config
-
-    if 'selected_features' in cfg_dict:
-        feats = cfg_dict['selected_features']
-        if 'item_tags' in feats:
-            cfg_dict['selected_features'] = [target_field if f == 'item_tags' else f for f in feats]
-    
-    if 'load_col' in cfg_dict and isinstance(cfg_dict['load_col'], dict) and 'item' in cfg_dict['load_col']:
-        item_cols = cfg_dict['load_col']['item']
-        if 'item_tags' in item_cols:
-            cfg_dict['load_col']['item'] = [target_field if f == 'item_tags' else f for f in item_cols]
-
-    if 'state_dict' in checkpoint:
-        new_state_dict = {}
-        for k, v in checkpoint['state_dict'].items():
-            new_k = k.replace('.item_tags.', f'.{target_field}.')
-            new_state_dict[new_k] = v
-        checkpoint['state_dict'] = new_state_dict
-
-    init_seed(config["seed"], config["reproducibility"])
-    init_logger(config)
-    logger = getLogger()
-    logger.info(config)
-
-    dataset = create_dataset(config)
-    logger.info(dataset)
-    train_data, valid_data, test_data = data_preparation(config, dataset)
-
-    init_seed(config["seed"], config["reproducibility"])
-    model = get_model(config["model"])(config, train_data._dataset).to(config["device"])
-    model.load_state_dict(checkpoint["state_dict"])
-    if checkpoint.get("other_parameter") is not None:
-        model.load_other_parameter(checkpoint.get("other_parameter"))
-
-    return config, model, dataset, train_data, valid_data, test_data
+from recbole.utils import init_seed
 
 
 def main():
@@ -153,9 +113,7 @@ def main():
                 logging.root.removeHandler(handler)
                 handler.close()
 
-            config, model, dataset, train_data, valid_data, test_data = load_data_and_model_with_field_remapping(
-                model_file=checkpoint_file, target_field=rerank_field
-            )
+            config, model, dataset, train_data, valid_data, test_data = load_data_and_model(checkpoint_file)
 
             config.final_config_dict['rerank_topk'] = None
             init_seed(config['seed'], config['reproducibility'])
@@ -175,9 +133,7 @@ def main():
                 logging.root.removeHandler(handler)
                 handler.close()
 
-            config2, model2, dataset2, train_data2, valid_data2, test_data2 = load_data_and_model_with_field_remapping(
-                model_file=checkpoint_file, target_field=rerank_field
-            )
+            config2, model2, dataset2, train_data2, valid_data2, test_data2 = load_data_and_model(checkpoint_file)
 
             config2.final_config_dict['rerank_topk'] = rerank_topk
             config2.final_config_dict['rerank_weight'] = rerank_weight

@@ -38,12 +38,12 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    'FPMC': {
-        'parameter_dict': {
+    # 'FPMC': {
+    #     'parameter_dict': {
                     
-        },
-        'model': FPMC
-    },
+    #     },
+    #     'model': FPMC
+    # },
     # 'GRU4Rec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -72,13 +72,13 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,

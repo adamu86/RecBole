@@ -92,7 +92,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and p.name.startswith("30music")
+    if p.is_dir() and "366" in p.name
 }
 logger = getLogger()
 
@@ -162,7 +162,7 @@ for model_name in model_dict.keys():
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': checkpoint_dir,
-                    'epochs': 30,
+                    'epochs': 20,
                     'save_dataset': False
                 }
             )
