@@ -48,23 +48,16 @@ _ARG_TO_GLOBAL = {
     "days_to_max": "DAYS_TO_MAX",
 }
 
-
 def parse_args():
-    """Parse CLI arguments and override corresponding module-level constants."""
-    parser = argparse.ArgumentParser(
-        description="Process 30Music sessions into RecBole format."
-    )
+    parser = argparse.ArgumentParser()
     for arg_name in _ARG_TO_GLOBAL:
         parser.add_argument(f"--{arg_name}", type=int)
-
     args = parser.parse_args()
-
-    g = globals()
+    globals_dict = globals()
     for arg_name, global_name in _ARG_TO_GLOBAL.items():
         value = getattr(args, arg_name)
         if value is not None:
-            g[global_name] = value
-
+            globals_dict[global_name] = value
     return args
 
 

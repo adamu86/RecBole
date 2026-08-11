@@ -89,13 +89,14 @@ class FPMC(SequentialRecommender):
 
         # This is the core part of the FPMC model,can be expressed by a combination of a MF and a FMC model
         #  MF
-        mf = torch.matmul(user_emb, iu_emb.permute(0, 2, 1))
-        mf = torch.squeeze(mf, dim=1)  # [B,1]
+        # mf = torch.matmul(user_emb, iu_emb.permute(0, 2, 1))
+        # mf = torch.squeeze(mf, dim=1)  # [B,1]
         #  FMC
         fmc = torch.matmul(il_emb, item_seq_emb.permute(0, 2, 1))
         fmc = torch.squeeze(fmc, dim=1)  # [B,1]
 
-        score = mf + fmc
+        # score = mf + fmc
+        score = fmc
         score = torch.squeeze(score)
         return score
 
@@ -124,9 +125,9 @@ class FPMC(SequentialRecommender):
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
 
-        user_emb = self.UI_emb(user)
-        all_iu_emb = self.IU_emb.weight
-        mf = torch.matmul(user_emb, all_iu_emb.transpose(0, 1))
+        # user_emb = self.UI_emb(user)
+        # all_iu_emb = self.IU_emb.weight
+        # mf = torch.matmul(user_emb, all_iu_emb.transpose(0, 1))
         all_il_emb = self.IL_emb.weight
 
         item_last_click_index = item_seq_len - 1
@@ -136,5 +137,5 @@ class FPMC(SequentialRecommender):
         item_seq_emb = self.LI_emb(item_last_click)  # [b,1,emb]
         fmc = torch.matmul(item_seq_emb, all_il_emb.transpose(0, 1))
         fmc = torch.squeeze(fmc, dim=1)
-        score = mf + fmc
+        score = fmc
         return score
