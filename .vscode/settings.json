@@ -29,6 +29,12 @@
 
     // "env_*.bat": true,
     // "Dockerfile": true,
+
+    "**/kg_url.yaml": true,
+    "**/dataset.yaml": true,
+    "**/ml-100k.yaml": true,
+    "**/sample.yaml": true,
+    "**/url.yaml": true,
     
     "recbole/properties/model/FDSA.yaml": true,
     "recbole/properties/model/FEARec.yaml": true,
