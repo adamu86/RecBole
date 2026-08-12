@@ -287,8 +287,7 @@ def filter_by_time_window(days_from_max=None, days_to_max=None, max_timestamp=No
     upper_bound = max_timestamp - days_to_max * 86400
 
     kept = 0
-    with open(input_path, "r", encoding="utf-8") as fin, \
-         open(output_path, "w", encoding="utf-8") as fout:
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc="Filtering sessions"):
             ts = int(line.split("\t", 3)[1])
             if lower_bound <= ts <= upper_bound:
@@ -312,8 +311,7 @@ def filter_tracks_by_playcount():
 
     print(f"Loaded {len(whitelisted):,} whitelisted tracks from {tracks_file}")
 
-    with open(input_path, "r", encoding="utf-8") as fin, \
-         open(output_path, "w", encoding="utf-8") as fout:
+    with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Filtering tracks in {input_path}"):
             parts = line.strip().split("\t")
             session_tracks = json.loads(parts[3])
@@ -357,8 +355,7 @@ def make_tracks_file(alias):
             track_ids.add(str(t["id"]))
 
     seen_tids = set()
-    with open(tracks_source, "r", encoding="utf-8") as fin, \
-         open(output_path, "w", encoding="utf-8") as fout:
+    with open(tracks_source, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(tracks_source), desc="Filtering tracks"):
             tid = line.strip().split("\t", 1)[0]
             if tid in track_ids and tid not in seen_tids:
@@ -463,8 +460,7 @@ def make_item_file(alias):
     n_with_artist_tags = 0
     n_fallback = 0
 
-    with open(tracks_path, "r", encoding="utf-8") as fin, \
-         open(output_path, "w", encoding="utf-8") as fout:
+    with open(tracks_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         fout.write("item_id:token\tartist_tags:token_seq\ttrack_tags:token_seq\n")
 
         for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
