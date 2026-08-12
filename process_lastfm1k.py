@@ -104,37 +104,7 @@ def _iter_session_lines(path, desc="Processing"):
             parts = line.strip().split("\t")
             tracks = json.loads(parts[3])
             yield parts, tracks
-
-_UNKNOWN_PATTERNS = re.compile(
-    r'\[unknown\]'
-    r'|<Artista Desconhecido>'
-    r'|<Artista desconocido>'
-    r'|\(artistes? inconnus?\)'
-    r'|<Nieznany wykonawca>'
-    r'|<Bilinmeyen>'
-    r'|<Desconhecido>'
-    r'|<Unbekannter Interpret>'
-    r'|<Okänd artist>'
-    r'|unknown\s*artist'
-    r'|artiste?\s*inconnu'
-    r'|various\s*artists?',
-    re.IGNORECASE,
-)
-
-_URL_PATTERN = re.compile(
-    r'www\.|\.(com|net|org|ru|info)|https?://',
-    re.IGNORECASE,
-)
-
-def _is_noisy(text):
-    if not text or text.isspace() or '\ufffd' in text:
-        return True
-    if sum(1 for c in text if c.isalpha()) < 2:
-        return True
-    if _UNKNOWN_PATTERNS.search(text) or _URL_PATTERN.search(text):
-        return True
-    return False
-
+            
 def _parse_iso_timestamp(ts_str):
     try:
         dt = datetime(
@@ -171,7 +141,7 @@ def initialize():
             artist_name = parts[3].strip()
             track_name = parts[5].strip()
 
-            if not user_id or _is_noisy(artist_name) or _is_noisy(track_name):
+            if not user_id:
                 continue
 
             ts = _parse_iso_timestamp(ts_str)

@@ -276,37 +276,6 @@ def make_tracks_file(alias):
                 seen_tids.add(tid)
                 fout.write(line)
 
-_UNKNOWN_PATTERNS = re.compile(
-    r'\[unknown\]'
-    r'|<Artista Desconhecido>'
-    r'|<Artista desconocido>'
-    r'|\(artistes? inconnus?\)'
-    r'|<Nieznany wykonawca>'
-    r'|<Bilinmeyen>'
-    r'|<Desconhecido>'
-    r'|<Unbekannter Interpret>'
-    r'|<Okänd artist>'
-    r'|unknown\s*artist'
-    r'|artiste?\s*inconnu'
-    r'|various\s*artists?',
-    re.IGNORECASE,
-)
-
-_URL_PATTERN = re.compile(
-    r'www\.|\.(com|net|org|ru|info)|https?://',
-    re.IGNORECASE,
-)
-
-def _is_noisy(text):
-    return (
-        not text
-        or text.isspace()
-        or '\ufffd' in text
-        or sum(1 for c in text if c.isalpha()) < 2
-        or _UNKNOWN_PATTERNS.search(text)
-        or _URL_PATTERN.search(text)
-    )
-
 def make_track_names_file():
     print("\nCreating track names file...")
 
@@ -335,9 +304,6 @@ def make_track_names_file():
 
             meta = json.loads(parts[3])
             name = unquote_plus(meta["name"])
-
-            if _is_noisy(name):
-                continue
 
             tracks[track_id] = name
 
