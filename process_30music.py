@@ -28,10 +28,10 @@ MAX_VALID_TRACK_ID = 3893303
 MIN_TIMESTAMP = 1390209860
 MAX_TIMESTAMP = 1421745720
 
-_SESSION_INACTIVITY_GAP = 800
-_MIN_TAG_WEIGHT = 0
+SESSION_INACTIVITY_GAP = 800
+MIN_TAG_WEIGHT = 0
 
-_ARG_TO_GLOBAL = {
+ARG_TO_GLOBAL = {
     "min_track_playcount": "MIN_TRACK_PLAYCOUNT",
     "min_session_length": "MIN_SESSION_LENGTH",
     "max_session_length": "MAX_SESSION_LENGTH",
@@ -44,11 +44,11 @@ _ARG_TO_GLOBAL = {
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    for arg_name in _ARG_TO_GLOBAL:
+    for arg_name in ARG_TO_GLOBAL:
         parser.add_argument(f"--{arg_name}", type=int)
     args = parser.parse_args()
     globals_dict = globals()
-    for arg_name, global_name in _ARG_TO_GLOBAL.items():
+    for arg_name, global_name in ARG_TO_GLOBAL.items():
         value = getattr(args, arg_name)
         if value is not None:
             globals_dict[global_name] = value
@@ -177,7 +177,7 @@ def _split_into_sub_sessions(tracks):
     sub_sessions = []
     current = [tracks[0]]
     for prev, cur in zip(tracks, tracks[1:]):
-        if cur["ps"] - prev["ps"] > _SESSION_INACTIVITY_GAP:
+        if cur["ps"] - prev["ps"] > SESSION_INACTIVITY_GAP:
             sub_sessions.append(current)
             current = []
         current.append(cur)
@@ -313,7 +313,7 @@ def make_track_names_file():
 
     print(f"Saved {len(tracks):,} clean tracks to {output_path}")
 
-def _parse_tags_json(data, min_weight=_MIN_TAG_WEIGHT):
+def _parse_tags_json(data, min_weight=MIN_TAG_WEIGHT):
     if not data:
         return []
     if isinstance(data[0], dict):

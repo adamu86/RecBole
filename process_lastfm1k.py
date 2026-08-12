@@ -28,16 +28,13 @@ MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
 DAYS_FROM_MAX = 366
 DAYS_TO_MAX = 0
 
-START_TIMESTAMP_2007 = 1167609600  # 2007-01-01 00:00:00 UTC
-END_TIMESTAMP_2007 = 1199145599    # 2007-12-31 23:59:59 UTC (ostatni dzień 2007)
+START_TIMESTAMP = 1199145600
+END_TIMESTAMP = 1230767999
 
-START_TIMESTAMP = 1199145600  # 2008-01-01 00:00:00 UTC
-END_TIMESTAMP = 1230767999    # 2008-12-31 23:59:59 UTC
+SESSION_INACTIVITY_GAP = 800
+MIN_TAG_WEIGHT = 0
 
-_SESSION_INACTIVITY_GAP = 800
-_MIN_TAG_WEIGHT = 0
-
-_ARG_TO_GLOBAL = {
+ARG_TO_GLOBAL = {
     "min_track_playcount": "MIN_TRACK_PLAYCOUNT",
     "min_session_length": "MIN_SESSION_LENGTH",
     "max_session_length": "MAX_SESSION_LENGTH",
@@ -52,7 +49,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Process LastFM-1K sessions into RecBole format."
     )
-    for arg_name in _ARG_TO_GLOBAL:
+    for arg_name in ARG_TO_GLOBAL:
         parser.add_argument(f"--{arg_name}", type=int)
     parser.add_argument("--all_splits", action="store_true", help="Process all 5 equal non-overlapping splits covering full dataset")
     parser.add_argument("--reinit", action="store_true", help="Force re-initializing raw sub-sessions from 2007-01 to 2008-12")
@@ -60,7 +57,7 @@ def parse_args():
     args = parser.parse_args()
 
     g = globals()
-    for arg_name, global_name in _ARG_TO_GLOBAL.items():
+    for arg_name, global_name in ARG_TO_GLOBAL.items():
         value = getattr(args, arg_name)
         if value is not None:
             g[global_name] = value
@@ -229,7 +226,7 @@ def _split_into_sub_sessions(tracks):
     sub_sessions = []
     current = [tracks[0]]
     for prev, cur in zip(tracks, tracks[1:]):
-        if cur["ps"] - prev["ps"] > _SESSION_INACTIVITY_GAP:
+        if cur["ps"] - prev["ps"] > SESSION_INACTIVITY_GAP:
             sub_sessions.append(current)
             current = []
         current.append(cur)
@@ -399,7 +396,7 @@ def make_track_names_file():
 
     print(f"Saved {len(tracks):,} whitelisted tracks to {output_path}")
 
-def _parse_tags_json(data, min_weight=_MIN_TAG_WEIGHT):
+def _parse_tags_json(data, min_weight=MIN_TAG_WEIGHT):
     if not data:
         return []
     if isinstance(data[0], dict):
