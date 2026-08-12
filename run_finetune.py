@@ -1,9 +1,8 @@
-from recbole.model.sequential_recommender import CORE
 import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import FPMC, GRU4Rec, GRU4RecF, NARM, STAMP, SASRec, SASRecF, SRGNN
+from recbole.model.sequential_recommender import FPMC, CORE, GRU4Rec, GRU4RecF, NARM, STAMP, SASRec, SASRecF, SRGNN
 from recbole.quick_start.quick_start import load_data_and_model
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
@@ -44,6 +43,13 @@ model_dict = {
     #     },
     #     'model': FPMC
     # },
+    'CORE': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
+        },
+        'model': CORE
+    },
     # 'GRU4Rec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -72,13 +78,13 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    'SASRec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SASRec
-    },
+    # 'SASRec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SASRec
+    # },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -92,7 +98,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and "366" in p.name
+    if p.is_dir() and p.name.startswith("30music")
 }
 logger = getLogger()
 

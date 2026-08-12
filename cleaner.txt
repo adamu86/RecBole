@@ -1,0 +1,11 @@
+docstrings:
+^[ \t]*("""[\s\S]*?"""|'''[\s\S]*?''')[ \t]*\r?\n
+    replace:
+
+comments:
+^[ \t]*#.*\r?\n
+    replace: 
+
+double lines:
+^([ \t]*\r?\n){2,}
+    replace: $1
