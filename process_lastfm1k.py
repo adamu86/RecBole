@@ -461,7 +461,7 @@ def make_item_file(alias):
     n_fallback = 0
 
     with open(tracks_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        fout.write("item_id:token\tartist_tags:token_seq\ttrack_tags:token_seq\n")
+        fout.write("item_id:token\tartist_tags:token_seq\n")
 
         for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
             parts = line.strip("\n").split("\t")
@@ -481,9 +481,7 @@ def make_item_file(alias):
             else:
                 n_fallback += 1
 
-            t_tags = a_tags
-
-            fout.write(f"{track_id}\t{a_tags}\t{t_tags}\n")
+            fout.write(f"{track_id}\t{a_tags}\n")
 
     print(f"Item tags created: {n_with_artist_tags:,} tracks with artist tags, "
           f"{n_fallback:,} fell back to 'unknown'.")

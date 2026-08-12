@@ -7,6 +7,6 @@ attn_dropout_prob: 0.3          # (float) The probability of an attention score 
 hidden_act: 'gelu'              # (str) The activation function in feed-forward layer.
 layer_norm_eps: 1e-12           # (float) A value added to the denominator for numerical stability. 
 initializer_range: 0.02         # (float) The standard deviation for normal initialization.
-selected_features: ['artist_tags', 'track_tags']    # (list of str) The list of selected item features. 
+selected_features: ['artist_tags']    # (list of str) The list of selected item features. 
 pooling_mode: 'sum'             # (str) Intra-feature pooling mode. Range in ['max', 'mean', 'sum'].
 loss_type: 'CE'                 # (str) The type of loss function. Range in ['BPR', 'CE'].

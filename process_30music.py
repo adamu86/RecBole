@@ -330,94 +330,26 @@ def _normalize_artist_name(name):
     name = re.sub(r'-{2,}', '-', name)
     return name.strip('-') or "unknown-artist"
 
-def _normalize_tag(tag):
-    tag = tag.casefold().strip()
-    tag = re.sub(r"[\s_]+", "-", tag)
-    tag = re.sub(r"[^a-z0-9\-]", "", tag)
-    tag = re.sub(r"-+", "-", tag).strip("-")
-    return tag
-
-def _load_tag_names(tags_idomaar_path):
-    tag_map = {}
-    if not os.path.exists(tags_idomaar_path):
-        print(f"Warning: {tags_idomaar_path} not found. Track-level tags will be empty.")
-        return tag_map
-
-    with open(tags_idomaar_path, "r", encoding="utf-8") as f:
-        for line in f:
-            parts = line.strip().split("\t")
-            if len(parts) >= 4 and parts[0] == "tag":
-                try:
-                    tag_id = int(parts[1])
-                    tag_data = json.loads(parts[3])
-                    tag_name = tag_data.get("value", "")
-                    if tag_name:
-                        normalized = _normalize_tag(tag_name)
-                        if normalized:
-                            tag_map[tag_id] = normalized
-                except (json.JSONDecodeError, ValueError):
-                    pass
-    return tag_map
-
-def _load_track_tags(tracks_idomaar_path, tag_name_map):
-    track_tags = {}
-    if not os.path.exists(tracks_idomaar_path):
-        print(f"Warning: {tracks_idomaar_path} not found. Track-level tags will be empty.")
-        return track_tags
-
-    with open(tracks_idomaar_path, "r", encoding="utf-8") as f:
-        for line in f:
-            parts = line.strip().split("\t")
-            if len(parts) < 5 or parts[0] != "track":
-                continue
-            try:
-                track_id = parts[1]
-                relationships = json.loads(parts[4])
-                tag_entries = relationships.get("tags", [])
-                if not tag_entries:
-                    continue
-                resolved = []
-                for t in tag_entries:
-                    tid = t.get("id")
-                    if tid is not None and tid in tag_name_map:
-                        resolved.append(tag_name_map[tid])
-                if resolved:
-                    track_tags[track_id] = " ".join(_deduplicate_tags(resolved))
-            except (json.JSONDecodeError, ValueError, KeyError):
-                pass
-
-    return track_tags
-
 def make_item_file(alias):
     print("\nCreating .item file...")
 
     artist_tags_path = os.path.join("dataset", "artists_tags_all.tsv")
     tracks_path = os.path.join("dataset", alias, "tracks.tsv")
     output_path = os.path.join("dataset", alias, f"{alias}.item")
-    tags_idomaar_path = os.path.join(DATA_PATH_RAW, "tags.idomaar")
-    tracks_idomaar_path = os.path.join(DATA_PATH_RAW, "tracks.idomaar")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     artist_tags = _load_artist_tags(artist_tags_path)
-
-    print("Loading track-level tag names from tags.idomaar...")
-    tag_name_map = _load_tag_names(tags_idomaar_path)
-    print(f"Loaded {len(tag_name_map):,} tag name mappings.")
-
-    print("Loading track-level tags from tracks.idomaar...")
-    track_tags_map = _load_track_tags(tracks_idomaar_path, tag_name_map)
-    print(f"Loaded track-level tags for {len(track_tags_map):,} tracks.")
 
     try:
         total_tracks = get_line_count(tracks_path)
     except Exception:
         total_tracks = None
 
-    n_with_track_tags = 0
+    n_with_artist_tags = 0
     n_fallback = 0
 
     with open(tracks_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
-        fout.write("item_id:token\tartist_tags:token_seq\ttrack_tags:token_seq\n")
+        fout.write("item_id:token\tartist_tags:token_seq\n")
 
         for line in tqdm(fin, total=total_tracks, desc=f"Building .item from {tracks_path}"):
             parts = line.strip("\n").split("\t")
@@ -431,17 +363,15 @@ def make_item_file(alias):
                       or artist_tags.get(artist_name)
                       or "unknown")
 
-            t_tags = track_tags_map.get(track_id)
-            if t_tags:
-                n_with_track_tags += 1
+            if a_tags != "unknown":
+                n_with_artist_tags += 1
             else:
-                t_tags = a_tags  # fallback
                 n_fallback += 1
 
-            fout.write(f"{track_id}\t{a_tags}\t{t_tags}\n")
+            fout.write(f"{track_id}\t{a_tags}\n")
 
-    print(f"Track-level tags: {n_with_track_tags:,} tracks with own tags, "
-          f"{n_fallback:,} fell back to artist tags.")
+    print(f"Item tags created: {n_with_artist_tags:,} tracks with artist tags, "
+          f"{n_fallback:,} fell back to 'unknown'.")
 
 def _load_artist_tags(artist_tags_path):
     artist_tags = {}
