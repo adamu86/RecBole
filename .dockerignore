@@ -1,0 +1,28 @@
+# Version control and IDE files
+.git/
+.gitignore
+.vscode/
+.github/
+.idea/
+
+# Experiment outputs, logs, and saved checkpoints (exclusively kept inside containers at runtime)
+log/
+log_tensorboard/
+saved/
+results/
+
+# Heavy raw datasets and archives (not needed for running preprocessed experiments)
+dataset_raw/
+dataset_temp/
+RecBole.zip
+
+# Python temporary files, caches, and build directories
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.env

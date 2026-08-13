@@ -1,4 +1,14 @@
 services:
+  recbole-experiments:
+    image: recbole-env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recbole-experiments
+    stdin_open: true
+    tty: true
+    # Standalone execution - NO volume mounts. Logs and models stay inside container.
+
   music-recommender-app:
     image: music-recommender-app
     build:
@@ -17,11 +27,5 @@ services:
       - ./log:/workspace/log
       - ./saved:/workspace/saved
 
-# docker compose build --no-cache
-# docker compose up -d
-# docker compose exec music-recommender-app bash
-# docker compose down
-
-# docker save music-recommender-app -o music-recommender-app.tar
-# docker load -i music-recommender-app.tar
-# docker run -d -p 8001:8001 -p 5173:5173 music-recommender-app
+# Run isolated experiment environment with docker compose:
+# docker compose run --rm recbole-experiments

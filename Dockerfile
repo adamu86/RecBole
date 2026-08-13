@@ -45,15 +45,17 @@ RUN wget -q "https://github.com/conda-forge/miniforge/releases/download/25.11.0-
     conda init bash && \
     conda init zsh
 
-RUN git clone --branch workdir https://github.com/adamu86/RecBole.git
+WORKDIR ${WORKSPACE}
 
-WORKDIR /root/RecBole
+# Copy repository files (excluding paths defined in .dockerignore: log/, saved/, dataset_raw/, etc.)
+COPY . ${WORKSPACE}
 
 RUN mamba env create -f conda/environment.yml -y
 
 RUN bash -c "source ${CONDA_DIR}/bin/activate recbole && \
     pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu130 && \
-    pip install numpy==1.24.4"
+    pip install numpy==1.24.4 && \
+    pip install -e ."
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
@@ -74,15 +76,18 @@ WORKDIR ${WORKSPACE}
 
 CMD ["zsh"]
 
-
-
-# 1. Build the image:
-# docker build --no-cache -t recbole-env .
-
-# 2. Run with current directory mounted as /workspace:
-# Linux:
-# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v $(pwd):/workspace recbole-env
-# PowerShell:
-# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v ${PWD}:/workspace recbole-env
-# Windows Command Prompt:
-# docker run -p 8000:8000 --rm --name recbole-env -it --gpus all -v %cd%:/workspace recbole-env
+# ==============================================================================
+# Instructions for running experiments purely inside container (No bind mounts)
+# ==============================================================================
+# 1. Build the self-contained container image:
+#    docker build -t recbole-env .
+#
+# 2. Run experiments inside container (standalone, no host volume mounts):
+#    docker run --rm -it --gpus all recbole-env
+#
+# 3. Run a specific script directly (non-interactive):
+#    docker run --rm --gpus all recbole-env python run_recbole.py
+#
+# 4. Extract logs/results from container if ever needed:
+#    docker cp <container_name_or_id>:/workspace/log ./log
+# ==============================================================================
