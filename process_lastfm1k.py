@@ -286,15 +286,11 @@ def filter_by_time_window(days_from_max=None, days_to_max=None, max_timestamp=No
     lower_bound = max_timestamp - days_from_max * 86400
     upper_bound = max_timestamp - days_to_max * 86400
 
-    kept = 0
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc="Filtering sessions"):
             ts = int(line.split("\t", 3)[1])
             if lower_bound <= ts <= upper_bound:
                 fout.write(line)
-                kept += 1
-
-    print(f"Kept {kept:,} sessions")
 
 def filter_tracks_by_playcount():
     print("\nFiltering tracks by lastfm_tracks.tsv whitelist...")

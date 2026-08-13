@@ -94,7 +94,7 @@ def initialize():
     input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE, file_extension=".idomaar")
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
-    def _extract_timestamp(line):
+    def extract_timestamp(line):
         try:
             idx1 = line.find("\t", 14)
             if idx1 == -1:
@@ -109,7 +109,7 @@ def initialize():
     raw_lines = []
     with open(input_path, "r", encoding="utf-8") as fin:
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Reading {input_path}"):
-            timestamp = _extract_timestamp(line)
+            timestamp = extract_timestamp(line)
             if timestamp is not None:
                 raw_lines.append((timestamp, line))
 
@@ -157,9 +157,7 @@ def initialize():
                 if not (MIN_SESSION_PLAYTIME <= playtime <= MAX_SESSION_PLAYTIME):
                     continue
 
-                new_session_id = (
-                    f"{session_id}_{sub_idx}" if len(sub_sessions) > 1 else str(session_id)
-                )
+                new_session_id = f"{session_id}_{sub_idx}" if len(sub_sessions) > 1 else str(session_id)
                 fout.write(
                     f"{new_session_id}\t{session_timestamp}\t{session_user_id}"
                     f"\t{json.dumps(sub_session, separators=(',', ':'))}\n"
@@ -197,15 +195,11 @@ def filter_by_time_window(days_from_max=None, days_to_max=None):
     lower_bound = MAX_TIMESTAMP - days_from_max * 86400
     upper_bound = MAX_TIMESTAMP - days_to_max * 86400
 
-    kept = 0
     with open(input_path, "r", encoding="utf-8") as fin, open(output_path, "w", encoding="utf-8") as fout:
         for line in tqdm(fin, total=get_line_count(input_path), desc="Filtering sessions"):
             ts = int(line.split("\t", 3)[1])
             if lower_bound <= ts <= upper_bound:
                 fout.write(line)
-                kept += 1
-
-    print(f"Kept {kept:,} sessions")
 
 def filter_tracks_by_playcount():
     print("\nFiltering tracks by tracks.tsv whitelist...")
