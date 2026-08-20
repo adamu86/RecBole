@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--model", type=str, default="GRU4RecF", help="Model name (default: GRU4RecF)")
     parser.add_argument("--field", type=str, default="artist_tags", help="Tag field for Jaccard reranking (default: artist_tags)")
     parser.add_argument("--topk", type=int, default=100, help="Rerank topk (default: 100)")
-    parser.add_argument("--weight", type=float, default=0.5, help="Rerank weight (default: 1.0)")
+    parser.add_argument("--weight", type=float, default=0.25, help="Rerank weight (default: 1.0)")
     parser.add_argument("--filter", type=str, default=None, help="Optional substring filter for dataset directory name (e.g. 'lastfm1k' or 'pcount[5]')")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing evaluation .json file if it exists")
     args = parser.parse_args()
@@ -138,6 +138,7 @@ def main():
             config2.final_config_dict['rerank_topk'] = rerank_topk
             config2.final_config_dict['rerank_weight'] = rerank_weight
             config2.final_config_dict['rerank_field'] = rerank_field
+            config2.final_config_dict['rerank_weighted'] = True
             init_seed(config2['seed'], config2['reproducibility'])
 
             trainer2 = Trainer(config2, model2)

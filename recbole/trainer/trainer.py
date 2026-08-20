@@ -866,13 +866,13 @@ class Trainer(AbstractTrainer):
         # wyciągamy oryginalne score'y tylko dla kandydatów z top-K
         topk_scores = scores.gather(1, topk_idx)
 
-        # przesuwamy score'y tak, żeby minimum w każdym wierszu było >= 0 
-        # (bo model może generować ujemne wyniki - przesunięcie to zabezpieczenie)
-        shift = topk_scores.min(dim=1, keepdim=True).values.clamp(max=0)
-        topk_shifted = topk_scores - shift
+        # jeśli model generuje ujemne wyniki
+        # shift = topk_scores.min(dim=1, keepdim=True).values.clamp(max=0)
+        # topk_shifted = topk_scores - shift
+        # boosted_scores = topk_shifted * (1.0 + boosts) + shift
 
-        # aplikujemy boost mnożnikowo, potem wracamy do oryginalnej skali
-        boosted_scores = topk_shifted * (1.0 + boosts) + shift
+        # aplikujemy boost mnożnikowo
+        boosted_scores = topk_scores * (1.0 + boosts)
 
         # podmieniamy zboostowane wartości z powrotem w oryginalnym tensorze score'ów
         scores.scatter_(1, topk_idx, boosted_scores)

@@ -37,19 +37,19 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
-                    
-    #     },
-    #     'model': FPMC
-    # },
-    'CORE': {
+    'FPMC': {
         'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None                        
+                    
         },
-        'model': CORE
+        'model': FPMC
     },
+    # 'CORE': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None                        
+    #     },
+    #     'model': CORE
+    # },
     # 'GRU4Rec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -98,7 +98,8 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and p.name.startswith("30music")
+    if p.is_dir() and all(ex not in p.name for ex in ["155-125", "185-155", "95-65", "220-146", "293-220", "73-0"])
+    # if p.is_dir()
 }
 logger = getLogger()
 
@@ -146,29 +147,44 @@ for model_name in model_dict.keys():
 
         latest = max(checkpoints, key=os.path.getmtime)
 
+        ckpt = None
+        should_skip = False
         try:
             ckpt = torch.load(latest, map_location='cpu')
             last_epoch = ckpt.get('epoch', -1)
-            if last_epoch >= 19:
-                continue
+            should_skip = (last_epoch >= 79) or is_early_stopped(model_name, dataset_name, ckpt)
+        except Exception:
+            should_skip = True
+        finally:
+            if ckpt is not None:
+                del ckpt
+                ckpt = None
+                gc.collect()
 
-            if is_early_stopped(model_name, dataset_name, ckpt):
-                continue
-        except Exception as e:
+        if should_skip:
             continue
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
             handler.close()
 
+        config = None
+        dataset = None
+        train_data = None
+        valid_data = None
+        test_data = None
+        model = None
+        trainer = None
+
         try:
+            print(f"Loading model {model_name} and dataset {dataset_name}")
             config = Config(
                 model=model_name,
                 dataset=dataset_name,
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': checkpoint_dir,
-                    'epochs': 20,
+                    'epochs': 80,
                     'save_dataset': False
                 }
             )
@@ -193,12 +209,23 @@ for model_name in model_dict.keys():
             with open(f'{checkpoint_dir}/results_1.json', 'w') as f:
                 json.dump({"test_result": test_result}, f, indent=2)
 
-            del model, trainer, dataset, train_data, valid_data, test_data
-            gc.collect()
-            torch.cuda.empty_cache()
-
         except Exception as e:
             traceback.print_exc()
+        finally:
+            if model is not None:
+                try:
+                    model.cpu()
+                except Exception:
+                    pass
+            del model, trainer, dataset, train_data, valid_data, test_data, config
+            model = None
+            trainer = None
+            dataset = None
+            train_data = None
+            valid_data = None
+            test_data = None
+            config = None
+            gc.collect()
             torch.cuda.empty_cache()
 
 

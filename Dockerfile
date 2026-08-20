@@ -47,7 +47,7 @@ RUN wget -q "https://github.com/conda-forge/miniforge/releases/download/25.11.0-
 
 WORKDIR ${WORKSPACE}
 
-# Copy repository files (excluding paths defined in .dockerignore: log/, saved/, dataset_raw/, etc.)
+# Copy repository files (including filtered model checkpoints: GRU4Rec, GRU4RecF, NARM)
 COPY . ${WORKSPACE}
 
 RUN mamba env create -f conda/environment.yml -y

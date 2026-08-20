@@ -3,13 +3,15 @@
 .gitignore
 .vscode/
 .github/
-.idea/
+# Application folder (frontend/backend node_modules, etc.)
+app/
 
-# Experiment outputs, logs, and saved checkpoints (exclusively kept inside containers at runtime)
+
+# Experiment outputs and logs (exclusively kept inside containers at runtime)
 log/
 log_tensorboard/
-saved/
 results/
+
 
 # Heavy raw datasets and archives (not needed for running preprocessed experiments)
 dataset_raw/
@@ -26,3 +28,10 @@ __pycache__/
 dist/
 build/
 .env
+
+# Model checkpoints: exclude all except GRU4Rec, GRU4RecF, and NARM
+saved/*
+!saved/GRU4Rec*
+!saved/GRU4RecF*
+!saved/NARM*
+

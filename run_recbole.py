@@ -72,34 +72,34 @@ model_dict = {
     #     },
     #     'model': NARM
     # },
-    'STAMP': {
+    # 'STAMP': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None,
+    #     },
+    #     'model': STAMP
+    # },
+    'SASRec': {
         'parameter_dict': {
             'train_neg_sample_args': None,
-            'neg_sampling': None,
+            'neg_sampling': None
         },
-        'model': STAMP
+        'model': SASRec
     },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    # 'SRGNN': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SRGNN
-    # }
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
+    }
 }
 
 dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir()
+    if p.is_dir() and "lastfm1k" not in p.name.lower()
 }
 logger = getLogger()
 
@@ -127,6 +127,14 @@ for model_name in model_dict.keys():
         if os.path.exists(f"saved/{model_name}_{dataset_name}"):
             continue
 
+        config = None
+        dataset = None
+        train_data = None
+        valid_data = None
+        test_data = None
+        model = None
+        trainer = None
+
         try:
             config = Config(
                 model=model_name, 
@@ -134,7 +142,8 @@ for model_name in model_dict.keys():
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
-                    'save_dataset': False
+                    'save_dataset': False,
+                    'epochs': 70
                 }
             )
 
@@ -165,14 +174,25 @@ for model_name in model_dict.keys():
             with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
                 json.dump({"test_result": test_result}, f, indent=2)
 
-            del model, trainer, dataset, train_data, valid_data, test_data
-            gc.collect()
-            torch.cuda.empty_cache()
         except Exception as e:
             logger.error(f"Failed {model_name} on {dataset_name}: {e}")
             traceback.print_exc()
+        finally:
+            if model is not None:
+                try:
+                    model.cpu()
+                except Exception:
+                    pass
+            del model, trainer, dataset, train_data, valid_data, test_data, config
+            model = None
+            trainer = None
+            dataset = None
+            train_data = None
+            valid_data = None
+            test_data = None
+            config = None
+            gc.collect()
             torch.cuda.empty_cache()
-            continue
 
 for dataset_name in dataset_dict.keys():
     if os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
