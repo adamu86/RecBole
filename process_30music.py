@@ -505,7 +505,7 @@ def main():
     raw_sessions = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     if not os.path.exists(raw_sessions):
         initialize()
-        filter_by_time_window(215, 65)
+        filter_by_time_window(165, 65)
         os.remove(raw_sessions)
         safe_copy(get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE), raw_sessions)
 
