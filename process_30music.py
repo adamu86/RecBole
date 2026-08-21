@@ -10,6 +10,7 @@ from collections import Counter
 from urllib.parse import unquote_plus
 import pandas as pd
 from tqdm import tqdm
+import uuid
 
 DATA_FILE = "sessions"
 DATA_PATH_RAW = "dataset_raw/"
@@ -473,7 +474,7 @@ def make_item_file(alias):
             artist_name = _normalize_artist_name(artist)
             a_tags = (artist_tags.get(track_id)
                       or artist_tags.get(artist_name)
-                      or "unknown")
+                      or str(uuid.uuid4()))
 
             t_tags = track_tags_map.get(track_id)
             if t_tags:

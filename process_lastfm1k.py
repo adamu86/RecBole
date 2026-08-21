@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import datetime, timezone
 import pandas as pd
 from tqdm import tqdm
+import uuid
 
 DATA_FILE = "lastfm_sessions"
 DATA_PATH_RAW = "dataset_raw/"
@@ -29,11 +30,8 @@ MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
 DAYS_FROM_MAX = 366
 DAYS_TO_MAX = 0
 
-START_TIMESTAMP_2007 = 1167609600  # 2007-01-01 00:00:00 UTC
-END_TIMESTAMP_2007 = 1199145599    # 2007-12-31 23:59:59 UTC (ostatni dzień 2007)
-
-START_TIMESTAMP = 1199145600  # 2008-01-01 00:00:00 UTC
-END_TIMESTAMP = 1230767999    # 2008-12-31 23:59:59 UTC
+START_TIMESTAMP = 1199145600
+END_TIMESTAMP = 1230767999
 
 _SESSION_INACTIVITY_GAP = 800
 _MIN_TAG_WEIGHT = 0
@@ -510,18 +508,17 @@ def make_item_file(alias):
             artist = parts[1].split("/_/")[0]
             artist_name = _normalize_artist_name(artist)
             a_tags = (artist_tags.get(track_id)
-                      or artist_tags.get(artist_name)
                       or artist_tags.get(artist)
-                      or "unknown")
+                      or str(uuid.uuid4()))
 
-            if a_tags != "unknown":
+            if a_tags != "":
                 n_with_artist_tags += 1
             else:
                 n_fallback += 1
 
             t_tags = a_tags
 
-            fout.write(f"{track_id}\t{a_tags}\t{t_tags}\n")
+            fout.write(f"{track_id}\t{a_tags}\n")
 
     print(f"Item tags created: {n_with_artist_tags:,} tracks with artist tags, "
           f"{n_fallback:,} fell back to 'unknown'.")

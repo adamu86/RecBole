@@ -92,7 +92,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and "lastfm1k" not in p.name.lower()
+    if p.is_dir()
 }
 logger = getLogger()
 

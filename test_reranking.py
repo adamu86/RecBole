@@ -138,7 +138,6 @@ def main():
             config2.final_config_dict['rerank_topk'] = rerank_topk
             config2.final_config_dict['rerank_weight'] = rerank_weight
             config2.final_config_dict['rerank_field'] = rerank_field
-            config2.final_config_dict['rerank_weighted'] = True
             init_seed(config2['seed'], config2['reproducibility'])
 
             trainer2 = Trainer(config2, model2)
