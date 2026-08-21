@@ -136,7 +136,7 @@ for model_name in model_dict.keys():
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
                     'save_dataset': False,
-                    'epochs': 100
+                    'epochs': 150
                 }
             )
 
