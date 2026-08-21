@@ -40,16 +40,9 @@ for _attr, _type in [
 model_dict = {
     # 'FPMC': {
     #     'parameter_dict': {
-                    
+                
     #     },
     #     'model': FPMC
-    # },
-    # 'CORE': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': CORE
     # },
     # 'GRU4Rec': {
     #     'parameter_dict': {
@@ -79,20 +72,20 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    'SRGNN': {
+    'SASRec': {
         'parameter_dict': {
             'train_neg_sample_args': None,
             'neg_sampling': None
         },
-        'model': SRGNN
-    }
+        'model': SASRec
+    },
+    # 'SRGNN': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SRGNN
+    # }
 }
 
 dataset_dir = Path("dataset")

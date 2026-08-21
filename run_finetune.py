@@ -37,12 +37,12 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    'FPMC': {
-        'parameter_dict': {
+    # 'FPMC': {
+    #     'parameter_dict': {
                     
-        },
-        'model': FPMC
-    },
+    #     },
+    #     'model': FPMC
+    # },
     # 'CORE': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -64,13 +64,13 @@ model_dict = {
     #     },
     #     'model': GRU4RecF
     # },
-    # 'NARM': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': NARM
-    # },
+    'NARM': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NARM
+    },
     # 'STAMP': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -98,8 +98,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and all(ex not in p.name for ex in ["155-125", "185-155", "95-65", "220-146", "293-220", "73-0"])
-    # if p.is_dir()
+    if p.is_dir() and "85-65" in p.name.lower()
 }
 logger = getLogger()
 
