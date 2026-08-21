@@ -51,13 +51,13 @@ model_dict = {
     #     },
     #     'model': GRU4Rec
     # },
-    'GRU4RecF': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,  
-            'neg_sampling': None,
-        },
-        'model': GRU4RecF
-    },
+    # 'GRU4RecF': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,  
+    #         'neg_sampling': None,
+    #     },
+    #     'model': GRU4RecF
+    # },
     # 'NARM': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -65,13 +65,13 @@ model_dict = {
     #     },
     #     'model': NARM
     # },
-    # 'STAMP': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None,
-    #     },
-    #     'model': STAMP
-    # },
+    'STAMP': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None,
+        },
+        'model': STAMP
+    },
     # 'SASRec': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -92,7 +92,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir()
+    if p.is_dir() and ("105-85" in p.name or "85-65" in p.name)
 }
 logger = getLogger()
 
