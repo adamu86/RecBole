@@ -1,8 +1,3 @@
-"""Pipeline for processing 30Music session data into RecBole format.
-
-Reads raw .idomaar session files, filters by time window and track playcount,
-then produces .inter and .item files suitable for RecBole benchmarking.
-"""
 
 import json
 import os
@@ -48,9 +43,7 @@ _ARG_TO_GLOBAL = {
     "days_to_max": "DAYS_TO_MAX",
 }
 
-
 def parse_args():
-    """Parse CLI arguments and override corresponding module-level constants."""
     parser = argparse.ArgumentParser(
         description="Process 30Music sessions into RecBole format."
     )
@@ -67,19 +60,13 @@ def parse_args():
 
     return args
 
-
 def get_data_file_path(data_path, data_file, file_extension=".tsv"):
-    """Return the full path for a data file with the given extension."""
     return os.path.join(data_path, f"{data_file}{file_extension}")
 
-
 def get_line_count(file_path):
-    """Return the number of lines in *file_path* using ``wc -l``."""
     return int(subprocess.check_output(["wc", "-l", file_path]).split()[0])
 
-
 def safe_copy(src, dst):
-    """Copy *src* to *dst*, removing a read-only *dst* first if necessary."""
     if os.path.exists(dst):
         try:
             os.chmod(dst, stat.S_IWRITE)
@@ -88,28 +75,18 @@ def safe_copy(src, dst):
             pass
     shutil.copyfile(src, dst)
 
-
 def _copy_processed_to_temp():
-    """Copy the processed sessions file into the temp directory."""
     safe_copy(
         get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
         get_data_file_path(DATA_PATH_TEMP, DATA_FILE),
     )
 
-
 def _remove_temp_file():
-    """Remove the temporary sessions file if it exists."""
     path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
     if os.path.exists(path):
         os.remove(path)
 
-
 def _iter_session_lines(path, desc="Processing"):
-    """Yield ``(parts, tracks)`` for each line in a sessions TSV file.
-
-    *parts* is the tab-split list of raw fields; *tracks* is the parsed JSON
-    track list from ``parts[3]``.
-    """
     total = get_line_count(path)
     with open(path, "r", encoding="utf-8") as fin:
         for line in tqdm(fin, total=total, desc=desc):
@@ -117,19 +94,14 @@ def _iter_session_lines(path, desc="Processing"):
             tracks = json.loads(parts[3])
             yield parts, tracks
 
-
 def initialize():
-    """Parse the raw ``.idomaar`` file, sort by timestamp, split into
-    sub-sessions, and write the initial processed TSV."""
     print("\nInitializing data...")
 
     input_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE, file_extension=".idomaar")
     output_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
 
     def _extract_timestamp(line):
-        """Extract the timestamp field from a raw idomaar line."""
         try:
-            # "event.session\t" is 14 chars
             idx1 = line.find("\t", 14)
             if idx1 == -1:
                 return None
@@ -140,7 +112,6 @@ def initialize():
         except ValueError:
             return None
 
-    # -- Read & sort --------------------------------------------------------
     raw_lines = []
     with open(input_path, "r", encoding="utf-8") as fin:
         for line in tqdm(fin, total=get_line_count(input_path), desc=f"Reading {input_path}"):
@@ -151,7 +122,6 @@ def initialize():
     print(f"Sorting {input_path}")
     raw_lines.sort(key=lambda x: x[0])
 
-    # -- Write sorted sessions ---------------------------------------------
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as fout:
         for _, line in tqdm(raw_lines, desc=f"Writing {output_path}"):
@@ -168,7 +138,6 @@ def initialize():
 
             session_user_id = session_objects["subjects"][0]["id"]
 
-            # De-duplicate near-simultaneous plays of the same track
             raw_tracks = []
             last_seen_ps = {}
             for st in session_objects["objects"]:
@@ -182,13 +151,10 @@ def initialize():
             if not raw_tracks:
                 continue
 
-            # Sort tracks chronologically
             raw_tracks.sort(key=lambda x: x["ps"])
 
-            # Split into sub-sessions on inactivity gaps
             sub_sessions = _split_into_sub_sessions(raw_tracks)
 
-            # Write out valid sub-sessions
             for sub_idx, sub_session in enumerate(sub_sessions):
                 if not (MIN_SESSION_LENGTH <= len(sub_session) <= MAX_SESSION_LENGTH):
                     continue
@@ -210,13 +176,7 @@ def initialize():
         get_data_file_path(DATA_PATH_RAW, DATA_FILE),
     )
 
-
 def _split_into_sub_sessions(tracks):
-    """Split a chronologically sorted track list into sub-sessions.
-
-    A new sub-session starts when the gap between consecutive play-starts
-    exceeds ``_SESSION_INACTIVITY_GAP`` seconds.
-    """
     if not tracks:
         return []
 
@@ -230,11 +190,7 @@ def _split_into_sub_sessions(tracks):
     sub_sessions.append(current)
     return sub_sessions
 
-
 def filter_by_time_window(days_from_max=None, days_to_max=None):
-    """Keep only sessions whose timestamp falls within
-    ``[MAX_TIMESTAMP - days_from_max*86400, MAX_TIMESTAMP - days_to_max*86400]``.
-    """
     if days_from_max is None:
         days_from_max = DAYS_FROM_MAX
     if days_to_max is None:
@@ -258,10 +214,7 @@ def filter_by_time_window(days_from_max=None, days_to_max=None):
 
     print(f"Kept {kept:,} sessions")
 
-
 def filter_tracks_by_playcount():
-    """Remove tracks not present in the ``tracks.tsv`` whitelist, then
-    discard sessions that fall outside the allowed length range."""
     print("\nFiltering tracks by tracks.tsv whitelist...")
 
     input_path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
@@ -289,9 +242,7 @@ def filter_tracks_by_playcount():
                     f"\t{json.dumps(session_tracks, separators=(',', ':'))}\n"
                 )
 
-
 def make_inter_file(alias):
-    """Create the ``.inter`` interactions file for RecBole."""
     print("\nCreating .inter file...")
 
     input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
@@ -309,10 +260,7 @@ def make_inter_file(alias):
             for track in tracks:
                 fout.write(f"{session_id}\t{user_id}\t{track['id']}\t{timestamp + int(track['ps'])}\n")
 
-
 def make_tracks_file(alias):
-    """Create a filtered ``tracks.tsv`` containing only tracks that appear
-    in the processed sessions."""
     print("\nCreating tracks file...")
 
     input_path = get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE)
@@ -320,13 +268,11 @@ def make_tracks_file(alias):
     output_path = os.path.join("dataset", alias, "tracks.tsv")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    # Collect all track IDs referenced in processed sessions
     track_ids = set()
     for _parts, session_tracks in _iter_session_lines(input_path, desc="Collecting track IDs"):
         for t in session_tracks:
             track_ids.add(str(t["id"]))
 
-    # Write only matching tracks (deduplicate by track ID)
     seen_tids = set()
     with open(tracks_source, "r", encoding="utf-8") as fin, \
          open(output_path, "w", encoding="utf-8") as fout:
@@ -335,7 +281,6 @@ def make_tracks_file(alias):
             if tid in track_ids and tid not in seen_tids:
                 seen_tids.add(tid)
                 fout.write(line)
-
 
 _UNKNOWN_PATTERNS = re.compile(
     r'\[unknown\]'
@@ -353,15 +298,12 @@ _UNKNOWN_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
-
 _URL_PATTERN = re.compile(
     r'www\.|\.(com|net|org|ru|info)|https?://',
     re.IGNORECASE,
 )
 
-
 def _is_noisy(text):
-    """Return True if *text* looks like a placeholder, URL, or garbage."""
     return (
         not text
         or text.isspace()
@@ -371,18 +313,13 @@ def _is_noisy(text):
         or _URL_PATTERN.search(text)
     )
 
-
 def make_track_names_file():
-    """Build ``tracks.tsv`` in the raw directory from the ``.idomaar`` source,
-    keeping only tracks with at least ``MIN_TRACK_PLAYCOUNT`` plays and
-    non-noisy names."""
     print("\nCreating track names file...")
 
     sessions_path = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
     tracks_source = os.path.join(DATA_PATH_RAW, "tracks.idomaar")
     output_path = os.path.join(DATA_PATH_RAW, "tracks.tsv")
 
-    # Count track occurrences across all sessions
     track_counts = Counter()
     for _parts, session_tracks in _iter_session_lines(sessions_path, desc="Counting tracks in sessions"):
         for t in session_tracks:
@@ -393,7 +330,6 @@ def make_track_names_file():
     track_ids = {tid for tid, count in track_counts.items() if count >= MIN_TRACK_PLAYCOUNT}
     print(f"Found {len(track_counts):,} unique tracks, {len(track_ids):,} with >= {MIN_TRACK_PLAYCOUNT} plays")
 
-    # Load track names from the idomaar source
     tracks = {}
     with open(tracks_source, "r", encoding="utf-8") as fin:
         for line in tqdm(fin, total=get_line_count(tracks_source), desc="Loading track names"):
@@ -417,13 +353,7 @@ def make_track_names_file():
 
     print(f"Saved {len(tracks):,} clean tracks to {output_path}")
 
-
 def _parse_tags_json(data, min_weight=_MIN_TAG_WEIGHT):
-    """Extract a flat list of hyphenated tag strings from a JSON-parsed
-    tag structure, filtering by weight >= min_weight.
-
-    Handles both ``[{"tag": "rock", "weight": 100}, ...]`` and ``["rock", ...]`` formats.
-    """
     if not data:
         return []
     if isinstance(data[0], dict):
@@ -434,46 +364,23 @@ def _parse_tags_json(data, min_weight=_MIN_TAG_WEIGHT):
         ]
     return [str(t).replace(" ", "-") for t in data if t]
 
-
 def _deduplicate_tags(tags):
-    """Return *tags* with duplicates removed, preserving insertion order."""
     return list(dict.fromkeys(t for t in tags if t))
 
-
 def _normalize_artist_name(name):
-    """Normalize an artist name into a safe RecBole token.
-
-    Converts to lowercase, replaces spaces/special chars with hyphens,
-    and strips leading/trailing hyphens.  E.g. ``"Weird Al" Yankovic``
-    becomes ``weird-al-yankovic``.
-    """
     name = name.strip().lower()
-    # Replace common separators with hyphens
     name = re.sub(r'[\s/\\,;:&+\'"!()\[\]{}]+', '-', name)
-    # Collapse multiple hyphens
     name = re.sub(r'-{2,}', '-', name)
     return name.strip('-') or "unknown-artist"
 
-
 def _normalize_tag(tag):
-    """Normalize a tag string into a safe, consistent RecBole token.
-
-    Matches the normalization used in ``fetch_artist_tags.py`` so that
-    track-level and artist-level tags share the same token space.
-    """
     tag = tag.casefold().strip()
     tag = re.sub(r"[\s_]+", "-", tag)
     tag = re.sub(r"[^a-z0-9\-]", "", tag)
     tag = re.sub(r"-+", "-", tag).strip("-")
     return tag
 
-
 def _load_tag_names(tags_idomaar_path):
-    """Load tag_id -> tag_name mapping from ``tags.idomaar``.
-
-    Returns a ``dict[int, str]`` mapping numeric tag IDs to normalised tag
-    name strings.
-    """
     tag_map = {}
     if not os.path.exists(tags_idomaar_path):
         print(f"Warning: {tags_idomaar_path} not found. Track-level tags will be empty.")
@@ -495,16 +402,7 @@ def _load_tag_names(tags_idomaar_path):
                     pass
     return tag_map
 
-
 def _load_track_tags(tracks_idomaar_path, tag_name_map):
-    """Load track-level tags from ``tracks.idomaar``.
-
-    Uses the tag ID -> name mapping from ``_load_tag_names`` to resolve tag
-    IDs found in each track's relationship data.
-
-    Returns a ``dict[str, str]`` mapping track ID strings to space-joined
-    tag name strings.
-    """
     track_tags = {}
     if not os.path.exists(tracks_idomaar_path):
         print(f"Warning: {tracks_idomaar_path} not found. Track-level tags will be empty.")
@@ -533,22 +431,10 @@ def _load_track_tags(tracks_idomaar_path, tag_name_map):
 
     return track_tags
 
-
 def make_item_file(alias):
-    """Create the ``.item`` file mapping track IDs to artist tags and track tags.
-
-    The output contains two tag columns:
-    - ``artist_tags``  – tags inherited from the artist
-    - ``track_tags``   – tags assigned directly to the track (Last.fm)
-
-    For tracks without track-level tags, ``track_tags`` falls back to the
-    artist tags so no item has an empty feature.
-    Which column(s) to use is selected in the RecBole YAML config via
-    ``load_col.item``.
-    """
     print("\nCreating .item file...")
 
-    artist_tags_path = os.path.join("dataset", "artists_tags_all.tsv")
+    artist_tags_path = os.path.join("dataset", "artists_tags.tsv")
     tracks_path = os.path.join("dataset", alias, "tracks.tsv")
     output_path = os.path.join("dataset", alias, f"{alias}.item")
     tags_idomaar_path = os.path.join(DATA_PATH_RAW, "tags.idomaar")
@@ -557,7 +443,6 @@ def make_item_file(alias):
 
     artist_tags = _load_artist_tags(artist_tags_path)
 
-    # Load track-level tags
     print("Loading track-level tag names from tags.idomaar...")
     tag_name_map = _load_tag_names(tags_idomaar_path)
     print(f"Loaded {len(tag_name_map):,} tag name mappings.")
@@ -590,7 +475,6 @@ def make_item_file(alias):
                       or artist_tags.get(artist_name)
                       or "unknown")
 
-            # Track-level tags with fallback to artist tags
             t_tags = track_tags_map.get(track_id)
             if t_tags:
                 n_with_track_tags += 1
@@ -598,18 +482,12 @@ def make_item_file(alias):
                 t_tags = a_tags  # fallback
                 n_fallback += 1
 
-            fout.write(f"{track_id}\t{a_tags}\t{t_tags}\n")
+            fout.write(f"{track_id}\t{a_tags}\n")
 
     print(f"Track-level tags: {n_with_track_tags:,} tracks with own tags, "
           f"{n_fallback:,} fell back to artist tags.")
 
-
 def _load_artist_tags(artist_tags_path):
-    """Load the artist-tags mapping from ``artists_tags.tsv``.
-
-    Returns a ``dict[str, str]`` mapping track/artist IDs to space-joined
-    tag strings.  Handles 2-, 3-, and 4-column formats.
-    """
     artist_tags = {}
 
     if not os.path.exists(artist_tags_path):
@@ -635,9 +513,7 @@ def _load_artist_tags(artist_tags_path):
 
     return artist_tags
 
-
 def get_dataset_name(prefix="30music__"):
-    """Build a descriptive dataset name encoding the current filter settings."""
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
@@ -647,9 +523,7 @@ def get_dataset_name(prefix="30music__"):
     ]
     return prefix + "_".join(name_parts)
 
-
 def split_sessions_temporal(df, session_field, time_field, ratios):
-    """Split entire sessions by temporal order of their earliest timestamp."""
     session_start_times = df.groupby(session_field)[time_field].min().sort_values()
     session_ids_sorted = session_start_times.index.values
 
@@ -663,13 +537,7 @@ def split_sessions_temporal(df, session_field, time_field, ratios):
 
     return train_sessions, valid_sessions, test_sessions
 
-
 def augment_sessions(df, session_field, item_field, time_field, max_seq_len):
-    """Create sequential augmentation (``item_id_list``) from raw interactions.
-
-    For each interaction (except the first in a session), produces one row
-    containing the preceding item sequence and the current item as target.
-    """
     df_sorted = df.sort_values([session_field, time_field])
 
     sessions = df_sorted[session_field].values
@@ -698,12 +566,7 @@ def augment_sessions(df, session_field, item_field, time_field, max_seq_len):
 
     return pd.DataFrame(augmented_rows)
 
-
 def write_benchmark_inter(df, output_path, session_field, item_field, time_field):
-    """Write an augmented DataFrame to ``.inter`` format.
-
-    Uses vectorised ``to_csv`` instead of row-by-row ``iterrows``.
-    """
     header = f"{session_field}:token\t{item_field}:token\titem_id_list:token_seq\t{time_field}:float\n"
 
     output_df = df[[session_field, item_field, "item_id_list", time_field]]
@@ -713,10 +576,7 @@ def write_benchmark_inter(df, output_path, session_field, item_field, time_field
 
     output_df.to_csv(output_path, sep="\t", header=False, index=False, mode="a")
 
-
 def make_benchmark_splits(alias, ratios=None, max_seq_len=100):
-    """Split the ``.inter`` file into train/valid/test, augment sequences,
-    and write the benchmark files."""
     if ratios is None:
         ratios = [0.8, 0.1, 0.1]
 
@@ -740,7 +600,6 @@ def make_benchmark_splits(alias, ratios=None, max_seq_len=100):
     print(f"  Total interactions: {len(df):,}")
     print(f"  Total sessions:     {df['session_id'].nunique():,}")
 
-    # -- Temporal split -----------------------------------------------------
     print("\n--- Splitting sessions temporally ---")
     split_sets = split_sessions_temporal(df, "session_id", "timestamp", ratios)
     split_names = ("train", "valid", "test")
@@ -750,7 +609,6 @@ def make_benchmark_splits(alias, ratios=None, max_seq_len=100):
 
     split_dfs = [df[df["session_id"].isin(s)] for s in split_sets]
 
-    # -- Augmentation & writing ---------------------------------------------
     print(f"\n--- Augmenting sequences (max_seq_len={max_seq_len}) ---")
     output_dir = os.path.join("dataset", alias)
 
@@ -761,9 +619,7 @@ def make_benchmark_splits(alias, ratios=None, max_seq_len=100):
         write_benchmark_inter(aug, output_path, "session_id", "item_id", "timestamp")
         print(f"  Written: {os.path.basename(output_path)}")
 
-
 def main():
-    """Run the full processing pipeline."""
     parse_args()
 
     raw_sessions = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
@@ -788,6 +644,6 @@ def main():
     make_benchmark_splits(dataset_name)
     _remove_temp_file()
 
-
 if __name__ == "__main__":
     main()
+

@@ -51,13 +51,13 @@ model_dict = {
     #     },
     #     'model': GRU4Rec
     # },
-    # 'GRU4RecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,  
-    #         'neg_sampling': None,
-    #     },
-    #     'model': GRU4RecF
-    # },
+    'GRU4RecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,  
+            'neg_sampling': None,
+        },
+        'model': GRU4RecF
+    },
     # 'NARM': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
@@ -72,13 +72,13 @@ model_dict = {
     #     },
     #     'model': STAMP
     # },
-    'SASRec': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SASRec
-    },
+    # 'SASRec': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SASRec
+    # },
     # 'SRGNN': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,
