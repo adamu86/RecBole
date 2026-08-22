@@ -123,12 +123,12 @@ def is_noisy(text):
     return False
 
 def parse_timestamp(timestamp):
-    datetime = datetime(
+    dt = datetime(
         int(timestamp[:4]), int(timestamp[5:7]), int(timestamp[8:10]),
         int(timestamp[11:13]), int(timestamp[14:16]), int(timestamp[17:19]),
         tzinfo=timezone.utc
     )
-    return int(datetime.timestamp())
+    return int(dt.timestamp())
 
 def initialize():
     print("\nInitializing LastFM-1K data...")

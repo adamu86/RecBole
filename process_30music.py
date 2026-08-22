@@ -330,6 +330,9 @@ def make_track_names_file():
             meta = json.loads(parts[3])
             name = unquote_plus(meta["name"])
 
+            if is_noisy(name):
+                continue
+
             tracks[track_id] = name
 
     with open(output_path, "w", encoding="utf-8") as file_out:
