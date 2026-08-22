@@ -71,7 +71,7 @@ def safe_copy(src, dst):
             pass
     shutil.copyfile(src, dst)
 
-def _copy_processed_to_temp():
+def copy_processed_to_temp():
     safe_copy(
         get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
         get_data_file_path(DATA_PATH_TEMP, DATA_FILE),
@@ -507,9 +507,9 @@ if __name__ == "__main__":
     dataset_name = get_dataset_name("30music__")
 
     filter_by_time_window()
-    _copy_processed_to_temp()
+    copy_processed_to_temp()
     filter_tracks_by_playcount()
-    _copy_processed_to_temp()
+    copy_processed_to_temp()
     make_inter_file(dataset_name)
     make_tracks_file(dataset_name)
     make_item_file(dataset_name)
