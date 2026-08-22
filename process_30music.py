@@ -498,13 +498,11 @@ if __name__ == "__main__":
 
     initialize()
     filter_by_time_window(165, 65)
-    os.remove(raw_sessions)
     safe_copy(get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE), raw_sessions)
-
     make_track_names_file()
 
     dataset_name = get_dataset_name("30music__")
-
+    
     filter_by_time_window()
     copy_processed_to_temp()
     filter_tracks_by_playcount()
