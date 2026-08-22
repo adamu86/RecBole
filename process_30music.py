@@ -495,14 +495,13 @@ if __name__ == "__main__":
     parse_args()
     
     raw_sessions = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
-    if not os.path.exists(raw_sessions):
-        initialize()
-        filter_by_time_window(165, 65)
-        os.remove(raw_sessions)
-        safe_copy(get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE), raw_sessions)
 
-    if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks")):
-        make_track_names_file()
+    initialize()
+    filter_by_time_window(165, 65)
+    os.remove(raw_sessions)
+    safe_copy(get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE), raw_sessions)
+
+    make_track_names_file()
 
     dataset_name = get_dataset_name("30music__")
 
