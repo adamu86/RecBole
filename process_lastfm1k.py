@@ -152,9 +152,9 @@ def initialize():
             artist_name = parts[3].strip()
             track_name = parts[5].strip()
 
-            if not user_id or is_noisy(artist_name):
+            if not user_id or is_noisy(artist_name) or is_noisy(track_name):
                 continue
-
+            
             if not (START_TIMESTAMP <= timestamp <= END_TIMESTAMP):
                 continue
 
