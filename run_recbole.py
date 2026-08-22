@@ -38,33 +38,33 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
+    'FPMC': {
+        'parameter_dict': {
                 
-    #     },
-    #     'model': FPMC
-    # },
-    # 'GRU4Rec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': GRU4Rec
-    # },
-    # 'GRU4RecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,  
-    #         'neg_sampling': None,
-    #     },
-    #     'model': GRU4RecF
-    # },
-    # 'NARM': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': NARM
-    # },
+        },
+        'model': FPMC
+    },
+    'GRU4Rec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
+        },
+        'model': GRU4Rec
+    },
+    'GRU4RecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,  
+            'neg_sampling': None,
+        },
+        'model': GRU4RecF
+    },
+    'NARM': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NARM
+    },
     'STAMP': {
         'parameter_dict': {
             'train_neg_sample_args': None,
@@ -72,27 +72,27 @@ model_dict = {
         },
         'model': STAMP
     },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    # 'SRGNN': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SRGNN
-    # }
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
+    }
 }
 
 dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and ("105-85" in p.name or "85-65" in p.name)
+    if p.is_dir()
 }
 logger = getLogger()
 
@@ -136,7 +136,7 @@ for model_name in model_dict.keys():
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': f'saved/{model_name}_{dataset_name}',
                     'save_dataset': False,
-                    'epochs': 150
+                    'epochs': 100
                 }
             )
 

@@ -37,33 +37,26 @@ for _attr, _type in [
         setattr(np, _attr, _type)
 
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
+    'FPMC': {
+        'parameter_dict': {
                     
-    #     },
-    #     'model': FPMC
-    # },
-    # 'CORE': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': CORE
-    # },
-    # 'GRU4Rec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': GRU4Rec
-    # },
-    # 'GRU4RecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,  
-    #         'neg_sampling': None,
-    #     },
-    #     'model': GRU4RecF
-    # },
+        },
+        'model': FPMC
+    },
+    'GRU4Rec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
+        },
+        'model': GRU4Rec
+    },
+    'GRU4RecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,  
+            'neg_sampling': None,
+        },
+        'model': GRU4RecF
+    },
     'NARM': {
         'parameter_dict': {
             'train_neg_sample_args': None,
@@ -71,34 +64,34 @@ model_dict = {
         },
         'model': NARM
     },
-    # 'STAMP': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None,
-    #     },
-    #     'model': STAMP
-    # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    # 'SRGNN': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SRGNN
-    # }
+    'STAMP': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None,
+        },
+        'model': STAMP
+    },
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
+    }
 }
 
 dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and "85-65" in p.name.lower()
+    if p.is_dir()
 }
 logger = getLogger()
 
@@ -151,7 +144,7 @@ for model_name in model_dict.keys():
         try:
             ckpt = torch.load(latest, map_location='cpu')
             last_epoch = ckpt.get('epoch', -1)
-            should_skip = (last_epoch >= 79) or is_early_stopped(model_name, dataset_name, ckpt)
+            should_skip = (last_epoch >= 199) or is_early_stopped(model_name, dataset_name, ckpt)
         except Exception:
             should_skip = True
         finally:
@@ -183,7 +176,7 @@ for model_name in model_dict.keys():
                 config_dict={
                     **model_dict[model_name]['parameter_dict'],
                     'checkpoint_dir': checkpoint_dir,
-                    'epochs': 80,
+                    'epochs': 200,
                     'save_dataset': False
                 }
             )
