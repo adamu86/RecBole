@@ -89,7 +89,7 @@ def get_sessions(path):
             tracks = json.loads(parts[3])
             yield parts, tracks
 
-_UNKNOWN_PATTERNS = re.compile(
+_NOISE_PATTERNS = re.compile(
     r'\[unknown\]'
     r'|<Artista Desconhecido>'
     r'|<Artista desconocido>'
@@ -101,23 +101,19 @@ _UNKNOWN_PATTERNS = re.compile(
     r'|<Okänd artist>'
     r'|unknown\s*artist'
     r'|artiste?\s*inconnu'
-    r'|various\s*artists?',
-    re.IGNORECASE,
-)
-
-_URL_PATTERN = re.compile(
+    r'|various\s*artists?'
     r'www\.|\.(com|net|org|ru|info)|https?://',
     re.IGNORECASE,
 )
 
 def is_noisy(text):
-    if not text or text.isspace() or '\ufffd' in text:
-        return True
-    if sum(1 for c in text if c.isalpha()) < 2:
-        return True
-    if _UNKNOWN_PATTERNS.search(text) or _URL_PATTERN.search(text):
-        return True
-    return False
+    return (
+        not text
+        or text.isspace()
+        or '\ufffd' in text
+        or sum(1 for c in text if c.isalpha()) < 2
+        or _NOISE_PATTERNS.search(text)
+    )
 
 def parse_timestamp(ts_str):
     try:
