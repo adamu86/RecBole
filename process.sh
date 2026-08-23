@@ -15,6 +15,6 @@ for p in "${params[@]}"; do
     python3 process_30music.py --days_from_max $from --days_to_max $to
 done
 
-python process_lastfm1k.py --all_splits
+python process_lastfm1k.py
 
-# python run_recbole.py
+python run_recbole.py
