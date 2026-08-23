@@ -1,10 +1,8 @@
-from recbole.model.sequential_recommender import CORE
 import logging
 from logging import getLogger
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
-from recbole.model.sequential_recommender import FPMC, GRU4Rec, GRU4RecF, NARM, STAMP, SASRec, SASRecF, SRGNN
-from recbole.quick_start.quick_start import load_data_and_model
+from recbole.model.sequential_recommender import FPMC, GRU4Rec, GRU4RecF, NARM, STAMP, SASRec, SRGNN
 from recbole.trainer import Trainer
 from recbole.utils import init_seed, init_logger
 from pathlib import Path
@@ -14,7 +12,6 @@ import shutil
 import json
 import gc
 import os
-import glob
 
 _original_torch_load = torch.load
 def _patched_torch_load(*args, **kwargs):
