@@ -412,7 +412,7 @@ def normalize_artist_name(name):
     name = name.strip().lower()
     name = re.sub(r'[\s/\\,;:&+\'"!()\[\]{}]+', '-', name)
     name = re.sub(r'-{2,}', '-', name)
-    return name.strip('-') or "unknown-artist"
+    return name.strip('-') or "unknown"
 
 def get_artist_tags(artist_tags_path):
     artist_tags = {}
