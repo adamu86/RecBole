@@ -112,6 +112,16 @@ def is_noisy(text):
         or _NOISE_PATTERNS.search(text)
     )
 
+def get_dataset_name(prefix="30music__"):
+    name_parts = [
+        f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
+        f"pcount[{MIN_TRACK_PLAYCOUNT}]",
+        f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
+        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
+        f"recent[{MAX_SESSION_RECENT_TRACKS}]",
+    ]
+    return prefix + "_".join(name_parts)
+
 def initialize():
     print("\nInitializing")
 
@@ -395,16 +405,6 @@ def make_item_file(alias):
             artist_tags = (all_artist_tags.get(track_id) or all_artist_tags.get(artist_name) or str(uuid.uuid4()))
 
             file_out.write(f"{track_id}\t{artist_tags}\n")
-
-def get_dataset_name(prefix="30music__"):
-    name_parts = [
-        f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
-        f"pcount[{MIN_TRACK_PLAYCOUNT}]",
-        f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
-        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
-        f"recent[{MAX_SESSION_RECENT_TRACKS}]",
-    ]
-    return prefix + "_".join(name_parts)
 
 def train_valid_test_split(df, session_field, time_field, ratios):
     session_start_times = df.groupby(session_field)[time_field].min().sort_values()
