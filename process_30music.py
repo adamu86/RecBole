@@ -99,7 +99,7 @@ _NOISE_PATTERNS = re.compile(
     r'|unknown\s*artist'
     r'|artiste?\s*inconnu'
     r'|various\s*artists?'
-    r'www\.|\.(com|net|org|ru|info)|https?://',
+    r'|www\.|\.(com|net|org|ru|info)|https?://',
     re.IGNORECASE,
 )
 
@@ -252,6 +252,10 @@ def filter_tracks_by_playcount():
         for line in file_in:
             allowed_tracks.add(int(line.strip().split("\t", 1)[0]))
 
+    kept_sessions = set()
+    kept_tracks = set()
+    kept_interactions = 0
+
     with open(input_path, "r", encoding="utf-8") as file_in, open(output_path, "w", encoding="utf-8") as file_out:
         for line in tqdm(file_in, total=get_line_count(input_path), desc=f"Filtering tracks in {input_path}"):
             parts = line.strip().split("\t")
@@ -263,6 +267,15 @@ def filter_tracks_by_playcount():
                     f"{parts[0]}\t{parts[1]}\t{parts[2]}"
                     f"\t{json.dumps(session_tracks, separators=(',', ':'))}\n"
                 )
+                kept_sessions.add(parts[0])
+                kept_interactions += len(session_tracks)
+                for track in session_tracks:
+                    kept_tracks.add(track["id"])
+
+
+    print(f"Interactions: {kept_interactions:,}")
+    print(f"    Sessions: {len(kept_sessions):,}")
+    print(f"      Tracks: {len(kept_tracks):,}")
 
 def make_inter_file(alias):
     print("\nCreating .inter file")
