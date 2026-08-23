@@ -554,8 +554,6 @@ if __name__ == "__main__":
         DAYS_TO_MAX = day_to
         dataset_name = get_dataset_name()
 
-        print(f"Processing split: {dataset_name}")
-
         filter_by_time_window(days_from_max=day_from, days_to_max=day_to, max_timestamp=max_timestamp)
         copy_processed_to_temp()
         filter_tracks_by_playcount()
