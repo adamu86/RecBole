@@ -381,7 +381,7 @@ def get_artist_tags(artist_tags_path):
     return artist_tags
 
 def make_item_file(alias):
-    print("\nCreating .item file...")
+    print("\nCreating .item file")
 
     artist_tags_path = os.path.join("dataset", "artists_tags.tsv")
     tracks_path = os.path.join("dataset", alias, "tracks.tsv")
