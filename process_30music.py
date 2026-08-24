@@ -84,7 +84,7 @@ def get_sessions(path):
             tracks = json.loads(parts[3])
             yield parts, tracks
 
-_NOISE_PATTERNS = re.compile(
+NOISE_PATTERNS = re.compile(
     r'\[unknown\]'
     r'|<Artista Desconhecido>'
     r'|<Artista desconocido>'
@@ -107,7 +107,7 @@ def is_noisy(text):
         or text.isspace()
         or '\ufffd' in text
         or sum(1 for c in text if c.isalpha()) < 2
-        or _NOISE_PATTERNS.search(text)
+        or NOISE_PATTERNS.search(text)
     )
 
 def get_dataset_name(prefix="30music__"):
@@ -273,6 +273,11 @@ def filter_tracks_by_playcount():
     print(f"Interactions: {kept_interactions:,}")
     print(f"    Sessions: {len(kept_sessions):,}")
     print(f"      Tracks: {len(kept_tracks):,}")
+
+    safe_copy(
+        output_path,
+        get_data_file_path(DATA_PATH_RAW, f"{DATA_FILE}_filtered")
+    )
 
 def make_inter_file(alias):
     print("\nCreating .inter file")

@@ -87,7 +87,7 @@ def get_sessions(path):
             tracks = json.loads(parts[3])
             yield parts, tracks
 
-_NOISE_PATTERNS = re.compile(
+NOISE_PATTERNS = re.compile(
     r'\[unknown\]'
     r'|<Artista Desconhecido>'
     r'|<Artista desconocido>'
@@ -110,7 +110,7 @@ def is_noisy(text):
         or text.isspace()
         or '\ufffd' in text
         or sum(1 for c in text if c.isalpha()) < 2
-        or _NOISE_PATTERNS.search(text)
+        or NOISE_PATTERNS.search(text)
     )
 
 def parse_timestamp(ts_str):
@@ -334,6 +334,11 @@ def filter_tracks_by_playcount():
     print(f"Interactions: {kept_interactions:,}")
     print(f"    Sessions: {len(kept_sessions):,}")
     print(f"      Tracks: {len(kept_tracks):,}")
+
+    safe_copy(
+        output_path,
+        get_data_file_path(DATA_PATH_RAW, f"{DATA_FILE}_filtered")
+    )
 
 def make_inter_file(alias):
     print("\nCreating .inter file")
@@ -575,3 +580,16 @@ if __name__ == "__main__":
         path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
         if os.path.exists(path):
             os.remove(path)
+
+if __name__ == "__main__":
+    parse_args()
+
+    initialize()
+    make_track_names_file()
+
+    _, max_timestamp = get_min_max_timestamps()
+
+    filter_by_time_window(days_from_max=DAYS_FROM_MAX, days_to_max=DAYS_TO_MAX, max_timestamp=max_timestamp)
+
+    copy_processed_to_temp()
+    filter_tracks_by_playcount()
