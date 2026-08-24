@@ -22,7 +22,6 @@ MIN_SESSION_LENGTH = 2
 MAX_SESSION_LENGTH = 100
 MIN_SESSION_PLAYTIME = 30
 MAX_SESSION_PLAYTIME = 1_000_000
-MAX_SESSION_RECENT_TRACKS = MAX_SESSION_LENGTH
 DAYS_FROM_MAX = 165
 DAYS_TO_MAX = 65
 
@@ -39,7 +38,6 @@ ARG_TO_GLOBAL = {
     "max_session_length": "MAX_SESSION_LENGTH",
     "min_session_playtime": "MIN_SESSION_PLAYTIME",
     "max_session_playtime": "MAX_SESSION_PLAYTIME",
-    "max_session_recent_tracks": "MAX_SESSION_RECENT_TRACKS",
     "days_from_max": "DAYS_FROM_MAX",
     "days_to_max": "DAYS_TO_MAX",
 }
@@ -117,8 +115,7 @@ def get_dataset_name(prefix="30music__"):
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
         f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
-        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]",
-        f"recent[{MAX_SESSION_RECENT_TRACKS}]",
+        f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]"
     ]
     return prefix + "_".join(name_parts)
 
