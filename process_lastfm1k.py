@@ -591,6 +591,7 @@ if __name__ == "__main__":
     for day_from, day_to in splits:
         DAYS_FROM_MAX = day_from
         DAYS_TO_MAX = day_to
+        
         dataset_name = get_dataset_name()
 
         filter_by_time_window(days_from_max=day_from, days_to_max=day_to, max_timestamp=max_timestamp)

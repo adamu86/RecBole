@@ -524,27 +524,36 @@ if __name__ == "__main__":
     parse_args()
 
     raw_sessions = get_data_file_path(DATA_PATH_RAW, DATA_FILE)
+
     if not os.path.exists(raw_sessions):
         initialize()
         filter_by_time_window(165, 65)
         os.remove(raw_sessions)
-        safe_copy(get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE), raw_sessions)
+        safe_copy(
+            get_data_file_path(DATA_PATH_PROCESSED, DATA_FILE),
+            raw_sessions
+        )
 
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks")):
         make_track_names_file()
 
-    dataset_name = get_dataset_name()
+    splits = [(165, 145), (145, 125), (125, 105), (105, 85), (85, 65)]
 
-    filter_by_time_window()
-    copy_processed_to_temp()
-    filter_tracks_by_playcount()
-    copy_processed_to_temp()
-    make_inter_file(dataset_name)
-    make_tracks_file(dataset_name)
-    make_item_file(dataset_name)
-    make_benchmark_splits(dataset_name)
+    for days_from_max, days_to_max in splits:
+        DAYS_FROM_MAX = days_from_max
+        DAYS_TO_MAX = days_to_max
 
-    path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
-    if os.path.exists(path):
-        os.remove(path)
+        dataset_name = get_dataset_name()
 
+        filter_by_time_window(days_from_max, days_to_max)
+        copy_processed_to_temp()
+        filter_tracks_by_playcount()
+        copy_processed_to_temp()
+        make_inter_file(dataset_name)
+        make_tracks_file(dataset_name)
+        make_item_file(dataset_name)
+        make_benchmark_splits(dataset_name)
+
+        path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
+        if os.path.exists(path):
+            os.remove(path)
