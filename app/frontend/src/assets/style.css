@@ -33,7 +33,7 @@
 
 html {
   font-family: 'Rubik', sans-serif;
-  @apply text-gray-800 bg-primary/10 **:duration-100 overflow-x-hidden;
+  @apply text-gray-800 bg-white **:duration-100 overflow-x-hidden;
 }
 
 main {

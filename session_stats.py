@@ -25,8 +25,8 @@ mpl.rcParams.update({
 })
 
 DATASETS = {
-    "LastFM-1K": "dataset_raw/lastfm_sessions_filtered.tsv",
-    "30Music":   "dataset_raw/sessions_filtered.tsv",
+    "LastFM-1K": "dataset_raw/lastfm_sessions.tsv",
+    "30Music":   "dataset_raw/sessions.tsv",
 }
 
 
@@ -46,17 +46,31 @@ def compute_stats(filepath: str) -> dict | None:
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
-            # Kolumna z JSON to ostatnia kolumna
             if len(parts) < 1:
                 continue
+
             json_col = parts[-1]
             n = count_items_in_json(json_col)
+
             if n > 0:
                 lengths.append(n)
 
     if not lengths:
-        print(f"  [BRAK DANYCH] Nie znaleziono żadnych sesji w {filepath}", file=sys.stderr)
+        print(
+            f"  [BRAK DANYCH] Nie znaleziono żadnych sesji w {filepath}",
+            file=sys.stderr
+        )
         return None
+
+    import numpy as np
+
+    percentiles = np.percentile(
+        lengths,
+        [25, 50, 75, 90, 95, 99]
+    )
+
+    above_100 = sum(length > 100 for length in lengths)
+    above_100_percent = 100 * above_100 / len(lengths)
 
     return {
         "count":  len(lengths),
@@ -65,6 +79,16 @@ def compute_stats(filepath: str) -> dict | None:
         "min":    min(lengths),
         "max":    max(lengths),
         "stdev":  statistics.stdev(lengths) if len(lengths) > 1 else 0.0,
+
+        "p25": percentiles[0],
+        "p50": percentiles[1],
+        "p75": percentiles[2],
+        "p90": percentiles[3],
+        "p95": percentiles[4],
+        "p99": percentiles[5],
+
+        "above_100": above_100,
+        "above_100_percent": above_100_percent,
     }
 
 
@@ -190,23 +214,32 @@ def plot_session_lengths(
 
 
 def main():
-    # print("=" * 55)
-    # print(f"{'Statystyki dlugosci sesji (liczba elementow)':^55}")
-    # print("=" * 55)
+    print("=" * 55)
+    print(f"{'Statystyki dlugosci sesji (liczba elementow)':^55}")
+    print("=" * 55)
 
-    # for name, path in DATASETS.items():
-    #     print(f"\n{name}  ({path})")
-    #     stats = compute_stats(path)
-    #     if stats is None:
-    #         continue
-    #     print(f"  Liczba sesji : {stats['count']:>10,}")
-    #     print(f"  Srednia      : {stats['mean']:>10.2f}")
-    #     print(f"  Mediana      : {stats['median']:>10.2f}")
-    #     print(f"  Min          : {stats['min']:>10}")
-    #     print(f"  Max          : {stats['max']:>10}")
-    #     print(f"  Odch. std.   : {stats['stdev']:>10.2f}")
+    for name, path in DATASETS.items():
+        print(f"\n{name}  ({path})")
+        stats = compute_stats(path)
+        if stats is None:
+            continue
+        print(f"  Liczba sesji : {stats['count']:>10,}")
+        print(f"  Srednia      : {stats['mean']:>10.2f}")
+        print(f"  Mediana      : {stats['median']:>10.2f}")
+        print(f"  Min          : {stats['min']:>10}")
+        print(f"  Max          : {stats['max']:>10}")
+        print(f"  Odch. std.   : {stats['stdev']:>10.2f}")
+        print(f"  P25          : {stats['p25']:>10.2f}")
+        print(f"  P50          : {stats['p50']:>10.2f}")
+        print(f"  P75          : {stats['p75']:>10.2f}")
+        print(f"  P90          : {stats['p90']:>10.2f}")
+        print(f"  P95          : {stats['p95']:>10.2f}")
+        print(f"  P99          : {stats['p99']:>10.2f}")
+        print(f"  P99          : {stats['p99']:>10.2f}")
+        print(f"  >100         : {stats['above_100']:>10,}")
+        print(f"  >100 (%)     : {stats['above_100_percent']:>10.2f}%")
 
-    # print("\n" + "=" * 55)
+    print("\n" + "=" * 55)
 
     # --- Long-tail plots ---
     for name, path in DATASETS.items():

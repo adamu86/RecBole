@@ -11,7 +11,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="column">
-    <h2 class="column-title">Current playlist</h2>
+    <h2 class="column-title">Current recommendations</h2>
     <TransitionGroup name="fade" tag="ul">
       <li
         v-if="recommendations.length === 0"
@@ -43,11 +43,11 @@ const emit = defineEmits<{
           "
         >
           {{ recommendation.name }}
-          <div v-if="recommendation.tags?.length" class="flex flex-wrap gap-1 mt-2">
+          <!-- <div v-if="recommendation.tags?.length" class="flex flex-wrap gap-1 mt-2">
             <span v-for="tag in recommendation.tags" :key="tag" class="px-1.5 py-0.5 text-xs bg-gray-300 text-gray-700 rounded">
               {{ tag }}
             </span>
-          </div>
+          </div> -->
         </span>
       </li>
     </TransitionGroup>

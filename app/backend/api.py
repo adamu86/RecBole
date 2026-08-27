@@ -130,7 +130,7 @@ def load_dataset(config):
             header = f.readline().strip().split('\t')
             try:
                 id_idx = header.index('item_id:token')
-                tags_idx = header.index('item_tags:token_seq')
+                tags_idx = header.index('artist_tags:token_seq')
                 for line in f:
                     parts = line.strip('\n').split('\t')
                     if len(parts) > max(id_idx, tags_idx):

@@ -133,9 +133,15 @@ const recommendations = reactive({
             if (!track.tags || track.tags.length === 0) {
               continue;
             }
-            const tags = listeningHistory.items.map((track: Track) => track.tags).flat();
+            const tags = listeningHistory.items
+                .map((track: Track) => track.tags)
+                .flat();
+
             const jaccardScore = jaccard(tags, track.tags);
-            track.score = parseFloat(track.score) * (jaccardScore === 0 ? 1 : jaccardScore + 1);
+
+            const weight = 0.25;
+
+            track.score = parseFloat(track.score) * (1 + weight * jaccardScore);
           }
           this.items.sort((a, b) => (b.score || 0) - (a.score || 0));
         }   
@@ -309,7 +315,7 @@ onUnmounted(() => {
             class="animate-spin! [&>button]:bg-transparent! [&>button>svg]:text-gray-500!"
           />
           <div v-else class="flex gap-2 items-center">
-            <div class="relative">
+            <!-- <div class="relative">
               <Button @click="toggleChart" icon="chart-column" />
               <Transition name="slide-fade-top">
                 <TrainingLog v-if="currentLog.epochs.length" v-show="showLog" />
@@ -324,7 +330,7 @@ onUnmounted(() => {
                   :metrics="currentMetricsTable"
                 />
               </Transition>
-            </div>
+            </div> -->
           </div>
         </Transition>
         <Select

@@ -37,11 +37,11 @@ const date = computed(() => {
       >
         <span class="flex-1">
           {{ track.name }}
-          <div v-if="track.tags?.length" class="flex flex-wrap gap-1 mt-2">
+          <!-- <div v-if="track.tags?.length" class="flex flex-wrap gap-1 mt-2">
             <span v-for="tag in track.tags" :key="tag" class="px-1.5 py-0.5 text-xs bg-gray-300 text-gray-700 rounded">
               {{ tag }}
             </span>
-          </div>
+          </div> -->
         </span>
         <div class="breadcrumb-group">
           <div class="breadcrumb">ID: {{ track.id }}</div>

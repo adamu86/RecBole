@@ -1,9 +1,3 @@
-"""Test script for tag-based Jaccard reranking.
-
-Loads saved checkpoints and runs evaluation twice per dataset split:
-1. Without reranking (baseline)
-2. With Jaccard reranking using specified tag field (default: track_tags)
-"""
 import logging
 from logging import getLogger
 import json
@@ -13,8 +7,11 @@ import gc
 import torch
 import numpy as np
 import shutil
+import argparse
+from recbole.quick_start.quick_start import load_data_and_model
+from recbole.trainer import Trainer
+from recbole.utils import init_seed
 
-# Fix for NumPy >= 1.24 compatibility
 for _attr, _type in [
     ("float", float),
     ("int", int),
@@ -34,21 +31,13 @@ def _patched_torch_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = _patched_torch_load
 
-import argparse
-
-from recbole.quick_start.quick_start import load_data_and_model
-from recbole.trainer import Trainer
-from recbole.utils import init_seed
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Test script for tag-based Jaccard reranking.")
-    parser.add_argument("--model", type=str, default="GRU4RecF", help="Model name (default: GRU4RecF)")
-    parser.add_argument("--field", type=str, default="artist_tags", help="Tag field for Jaccard reranking (default: artist_tags)")
-    parser.add_argument("--topk", type=int, default=100, help="Rerank topk (default: 100)")
-    parser.add_argument("--weight", type=float, default=0.25, help="Rerank weight (default: 1.0)")
-    parser.add_argument("--filter", type=str, default=None, help="Optional substring filter for dataset directory name (e.g. 'lastfm1k' or 'pcount[5]')")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing evaluation .json file if it exists")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, default="GRU4RecF")
+    parser.add_argument("--field", type=str, default="artist_tags")
+    parser.add_argument("--topk", type=int, default=100)
+    parser.add_argument("--weight", type=float, default=0.25)
+    parser.add_argument("--filter", type=str, default=None)
     args = parser.parse_args()
 
     model_name = args.model
@@ -56,7 +45,6 @@ def main():
     rerank_topk = args.topk
     rerank_weight = args.weight
     ds_filter = args.filter
-    overwrite = args.overwrite
 
     saved_dirs = glob.glob(f"saved/{model_name}_*")
     if ds_filter:
@@ -64,15 +52,13 @@ def main():
     saved_dirs.sort()
 
     if not saved_dirs:
-        print(f"No saved directories found matching saved/{model_name}_*")
         return
 
     for save_dir in saved_dirs:
         dataset_name = os.path.basename(save_dir).replace(f"{model_name}_", "")
         out_json = f"{save_dir}/rerank_{rerank_field}_comparison.json"
-        lock_file = f"{save_dir}/rerank_{rerank_field}.lock"
         
-        if os.path.exists(out_json) and not overwrite:
+        if os.path.exists(out_json):
             print("\n" + "#"*80)
             print(f"  SKIPPING DATASET: {dataset_name} ({out_json} already exists)")
             print("#"*80)
@@ -83,23 +69,6 @@ def main():
             print(f"No checkpoint found in {save_dir}. Skipping...")
             continue
         checkpoint_file = max(checkpoint_files, key=os.path.getmtime)
-
-        # Atomic lock file creation for multi-terminal support
-        if not overwrite:
-            try:
-                with open(lock_file, 'x') as f:
-                    f.write(str(os.getpid()))
-            except FileExistsError:
-                print("\n" + "#"*80)
-                print(f"  SKIPPING DATASET: {dataset_name} (in progress by another terminal: {lock_file})")
-                print("#"*80)
-                continue
-
-        print("\n" + "#"*80)
-        print(f"  EVALUATING DATASET: {dataset_name}")
-        print(f"  RERANKING FIELD: {rerank_field}")
-        print("#"*80)
-        print(f"Using checkpoint: {checkpoint_file}")
 
         yaml_dst = f"recbole/properties/dataset/{dataset_name}.yaml"
         if not os.path.exists(yaml_dst):
@@ -177,13 +146,7 @@ def main():
                     os.remove(yaml_dst)
                 except OSError:
                     pass
-            if os.path.exists(lock_file):
-                try:
-                    os.remove(lock_file)
-                except OSError:
-                    pass
 
-    # Aggregate all completed comparison JSONs across all datasets
     all_comparisons = {}
     for save_dir in saved_dirs:
         ds_name = os.path.basename(save_dir).replace(f"{model_name}_", "")
@@ -198,7 +161,6 @@ def main():
     out_summary = f"saved/{model_name}_all_rerank_{rerank_field}_comparisons.json"
     with open(out_summary, 'w') as f:
         json.dump(all_comparisons, f, indent=2)
-    print(f"\nAll completed results saved to {out_summary} (total {len(all_comparisons)} datasets)")
 
 if __name__ == "__main__":
     main()

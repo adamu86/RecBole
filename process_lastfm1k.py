@@ -10,7 +10,10 @@ from collections import Counter
 from datetime import datetime, timezone
 import pandas as pd
 from tqdm import tqdm
+import random
 import uuid
+
+SEED = 2020
 
 DATA_FILE = "lastfm_sessions"
 DATA_PATH_RAW = "dataset_raw/"
@@ -24,8 +27,8 @@ LASTFM_TRACKS_FILE = os.path.join(DATA_PATH_RAW, "lastfm_tracks.tsv")
 MIN_TRACK_PLAYCOUNT = 5
 MIN_SESSION_LENGTH = 2
 MAX_SESSION_LENGTH = 100
-MIN_SESSION_PLAYTIME = 30
-MAX_SESSION_PLAYTIME = 1_000_000
+MIN_SESSION_SPAN = 30
+
 DAYS_FROM_MAX = 366
 DAYS_TO_MAX = 0
 
@@ -39,8 +42,7 @@ ARG_TO_GLOBAL = {
     "min_track_playcount": "MIN_TRACK_PLAYCOUNT",
     "min_session_length": "MIN_SESSION_LENGTH",
     "max_session_length": "MAX_SESSION_LENGTH",
-    "min_session_playtime": "MIN_SESSION_PLAYTIME",
-    "max_session_playtime": "MAX_SESSION_PLAYTIME",
+    "min_session_span": "MIN_SESSION_SPAN",
     "days_from_max": "DAYS_FROM_MAX",
     "days_to_max": "DAYS_TO_MAX",
 }
@@ -61,6 +63,9 @@ def parse_args():
             global_vars[global_name] = value
 
     return args
+
+def deterministic_uuid(value):
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{SEED}:{value}"))
 
 def get_data_file_path(data_path, data_file, file_extension=".tsv"):
     return os.path.join(data_path, f"{data_file}{file_extension}")
@@ -128,7 +133,7 @@ def get_dataset_name(prefix="lastfm1k__"):
     name_parts = [
         f"days[{DAYS_FROM_MAX}-{DAYS_TO_MAX}]",
         f"pcount[{MIN_TRACK_PLAYCOUNT}]",
-        f"ptime[{MIN_SESSION_PLAYTIME}-{MAX_SESSION_PLAYTIME}]",
+        f"span[{MIN_SESSION_SPAN}]",
         f"length[{MIN_SESSION_LENGTH}-{MAX_SESSION_LENGTH}]"
     ]
     return prefix + "_".join(name_parts)
@@ -201,7 +206,7 @@ def initialize():
                     continue
 
                 playtime = sub_session[-1]["ps"] - sub_session[0]["ps"]
-                if not (MIN_SESSION_PLAYTIME <= playtime <= MAX_SESSION_PLAYTIME):
+                if playtime < MIN_SESSION_SPAN:
                     continue
 
                 session_counter += 1
@@ -476,7 +481,11 @@ def make_item_file(alias):
             track_id = parts[0]
             artist = parts[1].split("/_/")[0]
             artist_name = normalize_artist_name(artist)
-            artist_tags = (all_artist_tags.get(track_id) or all_artist_tags.get(artist_name) or str(uuid.uuid4()))
+            artist_tags = (
+                all_artist_tags.get(track_id)
+                or all_artist_tags.get(artist_name)
+                or deterministic_uuid(track_id)
+            )
 
             file_out.write(f"{track_id}\t{artist_tags}\n")
 
@@ -529,6 +538,27 @@ def write_benchmark_inter(df, output_path, session_field, item_field, time_field
 
     output_df.to_csv(output_path, sep="\t", header=False, index=False, mode="a")
 
+def filter_cold_start_items(train_df, eval_df, session_field, item_field):
+    """Remove interactions with items not present in the training set (cold start items).
+    Sessions that fall below MIN_SESSION_LENGTH after filtering are dropped entirely."""
+    train_items = set(train_df[item_field].unique())
+    before_interactions = len(eval_df)
+    before_sessions = eval_df[session_field].nunique()
+
+    filtered_df = eval_df[eval_df[item_field].isin(train_items)]
+
+    session_counts = filtered_df.groupby(session_field).size()
+    valid_sessions = session_counts[session_counts >= MIN_SESSION_LENGTH].index
+    filtered_df = filtered_df[filtered_df[session_field].isin(valid_sessions)]
+
+    removed_interactions = before_interactions - len(filtered_df)
+    removed_sessions = before_sessions - filtered_df[session_field].nunique()
+
+    print(f"  Cold start filtering: removed {removed_interactions:,} interactions, "
+          f"{removed_sessions:,} sessions")
+
+    return filtered_df
+
 def make_benchmark_splits(alias):
     print(f"\nCreating benchmark splits")
 
@@ -546,6 +576,13 @@ def make_benchmark_splits(alias):
     split_sets = train_valid_test_split(df, "session_id", "timestamp", [0.8, 0.1, 0.1])
     split_names = ("train", "valid", "test")
     split_dfs = [df[df["session_id"].isin(s)] for s in split_sets]
+
+    train_df = split_dfs[0]
+
+    for i, name in enumerate(split_names):
+        if name in ("valid", "test"):
+            print(f"  Filtering cold start items from {name} split")
+            split_dfs[i] = filter_cold_start_items(train_df, split_dfs[i], "session_id", "item_id")
 
     output_dir = os.path.join("dataset", alias)
 
@@ -580,16 +617,3 @@ if __name__ == "__main__":
         path = get_data_file_path(DATA_PATH_TEMP, DATA_FILE)
         if os.path.exists(path):
             os.remove(path)
-
-if __name__ == "__main__":
-    parse_args()
-
-    initialize()
-    make_track_names_file()
-
-    _, max_timestamp = get_min_max_timestamps()
-
-    filter_by_time_window(days_from_max=DAYS_FROM_MAX, days_to_max=DAYS_TO_MAX, max_timestamp=max_timestamp)
-
-    copy_processed_to_temp()
-    filter_tracks_by_playcount()
