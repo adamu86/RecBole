@@ -539,23 +539,12 @@ def write_benchmark_inter(df, output_path, session_field, item_field, time_field
     output_df.to_csv(output_path, sep="\t", header=False, index=False, mode="a")
 
 def filter_cold_start_items(train_df, eval_df, session_field, item_field):
-    """Remove interactions with items not present in the training set (cold start items).
-    Sessions that fall below MIN_SESSION_LENGTH after filtering are dropped entirely."""
     train_items = set(train_df[item_field].unique())
-    before_interactions = len(eval_df)
-    before_sessions = eval_df[session_field].nunique()
-
     filtered_df = eval_df[eval_df[item_field].isin(train_items)]
 
     session_counts = filtered_df.groupby(session_field).size()
     valid_sessions = session_counts[session_counts >= MIN_SESSION_LENGTH].index
     filtered_df = filtered_df[filtered_df[session_field].isin(valid_sessions)]
-
-    removed_interactions = before_interactions - len(filtered_df)
-    removed_sessions = before_sessions - filtered_df[session_field].nunique()
-
-    print(f"  Cold start filtering: removed {removed_interactions:,} interactions, "
-          f"{removed_sessions:,} sessions")
 
     return filtered_df
 
@@ -581,7 +570,6 @@ def make_benchmark_splits(alias):
 
     for i, name in enumerate(split_names):
         if name in ("valid", "test"):
-            print(f"  Filtering cold start items from {name} split")
             split_dfs[i] = filter_cold_start_items(train_df, split_dfs[i], "session_id", "item_id")
 
     output_dir = os.path.join("dataset", alias)
