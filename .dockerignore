@@ -31,7 +31,4 @@ build/
 
 # Model checkpoints: exclude all except GRU4Rec, GRU4RecF, and NARM
 saved/*
-!saved/GRU4Rec*
-!saved/GRU4RecF*
-!saved/NARM*
 

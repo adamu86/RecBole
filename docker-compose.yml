@@ -4,9 +4,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: recbole-experiments
+    container_name: recbole-env
     stdin_open: true
     tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     # Standalone execution - NO volume mounts. Logs and models stay inside container.
 
   music-recommender-app:
