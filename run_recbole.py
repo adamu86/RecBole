@@ -46,13 +46,13 @@ model_dict = {
     #     },
     #     'model': FPMC
     # },
-    # 'GRU4Rec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None                        
-    #     },
-    #     'model': GRU4Rec
-    # },
+    'GRU4Rec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None                        
+        },
+        'model': GRU4Rec
+    },
     # 'GRU4RecF': {
     #     'parameter_dict': {
     #         'train_neg_sample_args': None,  
@@ -81,13 +81,13 @@ model_dict = {
     #     },
     #     'model': SASRec
     # },
-    'SRGNN': {
-        'parameter_dict': {
-            'train_neg_sample_args': None,
-            'neg_sampling': None
-        },
-        'model': SRGNN
-    }
+    # 'SRGNN': {
+    #     'parameter_dict': {
+    #         'train_neg_sample_args': None,
+    #         'neg_sampling': None
+    #     },
+    #     'model': SRGNN
+    # }
 }
 
 dataset_dir = Path("dataset")
