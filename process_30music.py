@@ -507,11 +507,11 @@ def make_benchmark_splits(alias):
     split_names = ("train", "valid", "test")
     split_dfs = [df[df["session_id"].isin(s)] for s in split_sets]
 
-    train_df = split_dfs[0]
+    # train_df = split_dfs[0]
 
-    for i, name in enumerate(split_names):
-        if name in ("valid", "test"):
-            split_dfs[i] = filter_cold_start_items(train_df, split_dfs[i], "session_id", "item_id")
+    # for i, name in enumerate(split_names):
+    #     if name in ("valid", "test"):
+    #         split_dfs[i] = filter_cold_start_items(train_df, split_dfs[i], "session_id", "item_id")
 
     output_dir = os.path.join("dataset", alias)
 
@@ -536,6 +536,13 @@ if __name__ == "__main__":
 
     if not os.path.exists(get_data_file_path(DATA_PATH_RAW, "tracks")):
         make_track_names_file()
+
+    # # --- Globalny dataset: pełne okno 165-65 dni, po odfiltrowaniu tracków ---
+    # # dataset_raw/sessions.tsv zawsze = pełne okno 165-65 (po initialize())
+    # # więc kopiujemy bezpośrednio raw → temp zamiast ponownie filtrować okno
+    # print("\n=== Globalny dataset (165-65 dni, po whiteli\u015bcie track\u00f3w) ===")
+    # safe_copy(raw_sessions, get_data_file_path(DATA_PATH_TEMP, DATA_FILE))
+    # filter_tracks_by_playcount()   # czyta z temp, zapisuje dataset_raw/sessions_filtered.tsv
 
     splits = [(165, 145), (145, 125), (125, 105), (105, 85), (85, 65)]
 

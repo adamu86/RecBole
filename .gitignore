@@ -39,4 +39,6 @@ mod_scripts/c*
 
 backup/*
 **/*.zip
-results
+
+documents/*
+results/*

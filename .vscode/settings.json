@@ -52,8 +52,8 @@
     "recbole/properties/model/TransRec.yaml": true,
     "recbole/properties/model/NPE.yaml": true,
 
-    "dataset_temp": true,
-    "dataset_processed": true,
+    // "dataset_temp": true,
+    // "dataset_processed": true,
     "recbole/dataset_*": true,
     "recbole/model/context*": true,
     "recbole/model/general*": true,

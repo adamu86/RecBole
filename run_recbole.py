@@ -89,7 +89,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir()
+    if p.is_dir() and "30music" in p.name
 }
 logger = getLogger()
 
