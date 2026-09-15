@@ -20,7 +20,6 @@ def _patched_torch_load(*args, **kwargs):
     return _original_torch_load(*args, **kwargs)
 torch.load = _patched_torch_load
 
-# Patch NumPy >= 1.24 compatibility for RecBole (where np.float, np.int, np.bool were removed)
 import numpy as np
 for _attr, _type in [
     ("float", float),
@@ -40,12 +39,12 @@ parser.add_argument("dataset")
 args = parser.parse_args()
 
 model_dict = {
-    # 'FPMC': {
-    #     'parameter_dict': {
+    'FPMC': {
+        'parameter_dict': {
                 
-    #     },
-    #     'model': FPMC
-    # },
+        },
+        'model': FPMC
+    },
     'GRU4Rec': {
         'parameter_dict': {
             'train_neg_sample_args': None,
@@ -53,41 +52,41 @@ model_dict = {
         },
         'model': GRU4Rec
     },
-    # 'GRU4RecF': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,  
-    #         'neg_sampling': None,
-    #     },
-    #     'model': GRU4RecF
-    # },
-    # 'NARM': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': NARM
-    # },
-    # 'STAMP': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None,
-    #     },
-    #     'model': STAMP
-    # },
-    # 'SASRec': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SASRec
-    # },
-    # 'SRGNN': {
-    #     'parameter_dict': {
-    #         'train_neg_sample_args': None,
-    #         'neg_sampling': None
-    #     },
-    #     'model': SRGNN
-    # }
+    'GRU4RecF': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,  
+            'neg_sampling': None,
+        },
+        'model': GRU4RecF
+    },
+    'NARM': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': NARM
+    },
+    'STAMP': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None,
+        },
+        'model': STAMP
+    },
+    'SASRec': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SASRec
+    },
+    'SRGNN': {
+        'parameter_dict': {
+            'train_neg_sample_args': None,
+            'neg_sampling': None
+        },
+        'model': SRGNN
+    }
 }
 
 dataset_dir = Path("dataset")

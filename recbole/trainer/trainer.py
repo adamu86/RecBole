@@ -866,11 +866,6 @@ class Trainer(AbstractTrainer):
         # wyciągamy oryginalne score'y tylko dla kandydatów z top-K
         topk_scores = scores.gather(1, topk_idx)
 
-        # jeśli model generuje ujemne wyniki
-        # shift = topk_scores.min(dim=1, keepdim=True).values.clamp(max=0)
-        # topk_shifted = topk_scores - shift
-        # boosted_scores = topk_shifted * (1.0 + boosts) + shift
-
         # aplikujemy boost mnożnikowo
         boosted_scores = topk_scores * (1.0 + boosts)
 

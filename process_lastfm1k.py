@@ -538,16 +538,6 @@ def write_benchmark_inter(df, output_path, session_field, item_field, time_field
 
     output_df.to_csv(output_path, sep="\t", header=False, index=False, mode="a")
 
-def filter_cold_start_items(train_df, eval_df, session_field, item_field):
-    train_items = set(train_df[item_field].unique())
-    filtered_df = eval_df[eval_df[item_field].isin(train_items)]
-
-    session_counts = filtered_df.groupby(session_field).size()
-    valid_sessions = session_counts[session_counts >= MIN_SESSION_LENGTH].index
-    filtered_df = filtered_df[filtered_df[session_field].isin(valid_sessions)]
-
-    return filtered_df
-
 def make_benchmark_splits(alias):
     print(f"\nCreating benchmark splits")
 
@@ -566,12 +556,6 @@ def make_benchmark_splits(alias):
     split_names = ("train", "valid", "test")
     split_dfs = [df[df["session_id"].isin(s)] for s in split_sets]
 
-    # train_df = split_dfs[0]
-
-    # for i, name in enumerate(split_names):
-    #     if name in ("valid", "test"):
-    #         split_dfs[i] = filter_cold_start_items(train_df, split_dfs[i], "session_id", "item_id")
-
     output_dir = os.path.join("dataset", alias)
 
     for name, split_df in zip(split_names, split_dfs):
@@ -586,23 +570,6 @@ if __name__ == "__main__":
     make_track_names_file()
 
     _, max_timestamp = get_min_max_timestamps()
-
-    # # --- Globalny dataset: pe\u0142ne okno (366-0 dni), po odfiltrowaniu track\u00f3w ---
-    # # initialize() zapisuje do dataset_raw/ bez filtrowania czasowego,
-    # # wi\u0119c musimy najpierw przefiltrowa\u0107 pe\u0142ne okno RAW \u2192 PROCESSED \u2192 TEMP
-    # print("\n=== Globalny dataset (pe\u0142ne okno, po whiteli\u015bcie track\u00f3w) ===")
-    # filter_by_time_window(days_from_max=366, days_to_max=0, max_timestamp=max_timestamp)
-    # copy_processed_to_temp()
-    # filter_tracks_by_playcount()   # czyta z temp, zapisuje dataset_raw/lastfm_sessions_filtered.tsv
-
-    # global_filtered_path = get_data_file_path(DATA_PATH_RAW, f"{DATA_FILE}_filtered")
-    # global_user_ids = set()
-    # with open(global_filtered_path, "r", encoding="utf-8") as f:
-    #     for line in f:
-    #         parts = line.split("\t", 3)
-    #         if len(parts) >= 3:
-    #             global_user_ids.add(parts[2])
-    # print(f"Liczba unikalnych user\u00f3w (globalnie, po filtrze): {len(global_user_ids):,}")
 
     splits = get_5_equal_splits()
     for day_from, day_to in splits:
