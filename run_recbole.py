@@ -91,6 +91,7 @@ dataset_dict = {
     for p in dataset_dir.iterdir()
     if p.is_dir()
 }
+
 logger = getLogger()
 
 for dataset_name in dataset_dict.keys():
@@ -101,8 +102,10 @@ for dataset_name in dataset_dict.keys():
     if not os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
         base_dataset = dataset_name.split("__")[0]
         template_yaml = f"recbole/properties/dataset/{base_dataset}.yaml"
+
         if not os.path.exists(template_yaml):
             template_yaml = 'recbole/properties/dataset/30music.yaml'
+
         shutil.copy(
             template_yaml, 
             f'recbole/properties/dataset/{dataset_name}.yaml'
@@ -139,6 +142,7 @@ for model_name in model_dict.keys():
 
             init_seed(config['seed'], config['reproducibility'])
             init_logger(config)
+
             if not logger.handlers:
                 c_handler = logging.StreamHandler()
                 c_handler.setLevel(logging.INFO)
@@ -153,12 +157,14 @@ for model_name in model_dict.keys():
             logger.info(model)
 
             trainer = Trainer(config, model)
+
             best_valid_score, best_valid_result = trainer.fit(
                 train_data,
                 valid_data,
                 saved=True,
                 show_progress=True
             )
+
             test_result = trainer.evaluate(test_data)
 
             with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
