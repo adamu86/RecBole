@@ -161,7 +161,7 @@ def set_model(req: ModelRequest):
 @app.get("/tracks")
 def get_tracks(req: TrackListRequest = Depends()):
     if not TRACK_NAMES:
-        raise HTTPException(404, "No tracks data")
+        raise HTTPException(404, "No tracks")
     
     tracks = [
         Track(id=tid, name=name.replace("/_/", " - "), tags=TRACK_TAGS.get(tid))
