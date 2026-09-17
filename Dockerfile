@@ -47,7 +47,6 @@ RUN wget -q "https://github.com/conda-forge/miniforge/releases/download/25.11.0-
 
 WORKDIR ${WORKSPACE}
 
-# Copy repository files (including filtered model checkpoints: GRU4Rec, GRU4RecF, NARM)
 COPY . ${WORKSPACE}
 
 RUN mamba env create -f conda/environment.yml -y
@@ -75,19 +74,3 @@ RUN echo 'ZSH_THEME=""' >> /root/.zshrc && \
 WORKDIR ${WORKSPACE}
 
 CMD ["zsh"]
-
-# ==============================================================================
-# Instructions for running experiments purely inside container (No bind mounts)
-# ==============================================================================
-# 1. Build the self-contained container image:
-#    docker build -t recbole-env .
-#
-# 2. Run experiments inside container (standalone, no host volume mounts):
-#    docker run --rm -it --gpus all recbole-env
-#
-# 3. Run a specific script directly (non-interactive):
-#    docker run --rm --gpus all recbole-env python run_recbole.py
-#
-# 4. Extract logs/results from container if ever needed:
-#    docker cp <container_name_or_id>:/workspace/log ./log
-# ==============================================================================
