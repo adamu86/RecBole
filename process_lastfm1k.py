@@ -462,7 +462,7 @@ def get_artist_tags(artist_tags_path):
 def make_item_file(alias):
     print("\nCreating .item file")
 
-    artist_tags_path = os.path.join("dataset", "artists_tags_all.tsv")
+    artist_tags_path = os.path.join("dataset", "artists_tags.tsv")
     tracks_path = os.path.join("dataset", alias, "tracks.tsv")
     output_path = os.path.join("dataset", alias, f"{alias}.item")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
