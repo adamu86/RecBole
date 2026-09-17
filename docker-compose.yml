@@ -1,10 +1,12 @@
 services:
-  recbole-experiments:
+  recbole-env:
     image: recbole-env
     build:
       context: .
       dockerfile: Dockerfile
     container_name: recbole-env
+    ports:
+      - "8000:8000"
     stdin_open: true
     tty: true
     deploy:
@@ -14,25 +16,3 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    # Standalone execution - NO volume mounts. Logs and models stay inside container.
-
-  music-recommender-app:
-    image: music-recommender-app
-    build:
-      context: .
-      dockerfile: AppDockerfile
-
-    container_name: music-recommender-app
-    ports:
-      - "8001:8001"
-      - "5173:5173"
-    stdin_open: true
-    tty: true
-    volumes:
-      - ./app:/workspace/app
-      - ./dataset:/workspace/dataset 
-      - ./log:/workspace/log
-      - ./saved:/workspace/saved
-
-# Run isolated experiment environment with docker compose:
-# docker compose run --rm recbole-experiments
