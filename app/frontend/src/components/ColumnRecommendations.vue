@@ -28,7 +28,6 @@ const emit = defineEmits<{
         class="group track"
       >
         <span class="rank">
-          <!-- {{ recommendation.rank }} -->
             {{ idx + 1 }}
         </span>
         <div class="breadcrumb-group">

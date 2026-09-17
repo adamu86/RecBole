@@ -24,14 +24,6 @@ export function setModel(modelPath: string): Promise<Status> {
     });
 }
 
-export function fetchMetrics(): Promise<Metrics> {
-    return apiFetch<Metrics>("/metrics");
-}
-
-export function fetchLog(): Promise<TrainingLog> {
-    return apiFetch<TrainingLog>("/log");
-}
-
 export function fetchTracks(
     offset: number = 0,
     limit: number = 50,

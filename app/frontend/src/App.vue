@@ -5,21 +5,7 @@ import {
   fetchModels,
   setModel,
   fetchStatus,
-  fetchMetrics,
 } from "./service";
-import {
-  buildChart,
-  toggleChart,
-  toggleMetricsTable,
-  currentLog,
-  showLog,
-  loadLog,
-  currentMetricsTable,
-  showMetricsTable,
-  getMetrics,
-} from "./chart";
-import TrainingLog from "./components/TrainingLog.vue";
-import MetricsTable from "./components/MetricsTable.vue";
 import Select from "./components/Select.vue";
 import Input from "./components/Input.vue";
 import Button from "./components/Button.vue";
@@ -217,8 +203,6 @@ watch(
   () => models.current,
   async (newModelPath, oldModelPath) => {
     if (!newModelPath || !oldModelPath) return;
-    showLog.value = false;
-    showMetricsTable.value = false;
     availableTracks.items = [];
     availableTracks.page.reset();
     listeningHistory.items = [];
@@ -252,9 +236,6 @@ const before = computed(() => {
 const load = async () => {
   await models.fetch();
   await availableTracks.fetch();
-  await getMetrics();
-  await loadLog();
-  buildChart();
 };
 
 const init = async () => {
@@ -314,24 +295,6 @@ onUnmounted(() => {
             icon="spinner"
             class="animate-spin! [&>button]:bg-transparent! [&>button>svg]:text-gray-500!"
           />
-          <div v-else class="flex gap-2 items-center">
-            <!-- <div class="relative">
-              <Button @click="toggleChart" icon="chart-column" />
-              <Transition name="slide-fade-top">
-                <TrainingLog v-if="currentLog.epochs.length" v-show="showLog" />
-              </Transition>
-            </div>
-            <div class="relative">
-              <Button @click="toggleMetricsTable" icon="table" />
-              <Transition name="slide-fade-top">
-                <MetricsTable
-                  v-if="currentMetricsTable"
-                  v-show="showMetricsTable"
-                  :metrics="currentMetricsTable"
-                />
-              </Transition>
-            </div> -->
-          </div>
         </Transition>
         <Select
           v-model="models.current"
@@ -383,10 +346,7 @@ onUnmounted(() => {
       </div>
     </div>
     <div class="flex gap-2">
-      <!-- <Button
-        @click="listeningHistory.items.splice(0, listeningHistory.items.length)"
-        icon="eraser"
-      /> -->
+
     </div>
     <div class="flex gap-2 w-2/3 ml-auto">
       <Input v-model="recommendations.topk" placeholder="K..."/>
@@ -425,20 +385,6 @@ onUnmounted(() => {
             : 'wand-magic'
         "
       />
-      <!-- <Input v-model="recommendations.interval" placeholder="Interval (s)..." />
-      <Button
-        @click.prevent="recommendations.autoPlay.toggle()"
-        :disabled="
-          listeningHistory.items.length === 0 ||
-          recommendations.autoContinue.value
-        "
-        :info="
-          recommendations.autoPlay.value
-            ? 'Auto-play is ON'
-            : 'Auto-play is OFF'
-        "
-        :icon="recommendations.autoPlay.value ? 'stop' : 'play'"
-      /> -->
     </div>
   </main>
 </template>
