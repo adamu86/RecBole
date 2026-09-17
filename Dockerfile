@@ -53,8 +53,7 @@ RUN mamba env create -f conda/environment.yml -y
 
 RUN bash -c "source ${CONDA_DIR}/bin/activate recbole && \
     pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu130 && \
-    pip install numpy==1.24.4 && \
-    pip install -e ."
+    pip install numpy==1.24.4"
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 

@@ -33,11 +33,7 @@ for _attr, _type in [
 ]:
     if not hasattr(np, _attr):
         setattr(np, _attr, _type)
-
-parser = argparse.ArgumentParser()
-parser.add_argument("dataset")
-args = parser.parse_args()
-
+        
 model_dict = {
     'FPMC': {
         'parameter_dict': {
@@ -93,7 +89,7 @@ dataset_dir = Path("dataset")
 dataset_dict = {
     f"{p.name}": f"{p.name}"
     for p in dataset_dir.iterdir()
-    if p.is_dir() and args.dataset in p.name
+    if p.is_dir()
 }
 logger = getLogger()
 
