@@ -543,8 +543,8 @@ def make_benchmark_splits(alias):
 
     inter_path = os.path.join("dataset", alias, f"{alias}.inter")
 
-    with open(inter_path, "r", encoding="utf-8") as f:
-        header_line = f.readline().strip()
+    with open(inter_path, "r", encoding="utf-8") as file_in:
+        header_line = file_in.readline().strip()
 
     col_names = [column.split(":")[0] for column in header_line.split("\t")]
     df = pd.read_csv(inter_path, sep="\t", header=0, names=col_names, dtype=str)
