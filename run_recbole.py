@@ -12,7 +12,6 @@ import shutil
 import json
 import gc
 import os
-import argparse
 
 _original_torch_load = torch.load
 def _patched_torch_load(*args, **kwargs):
