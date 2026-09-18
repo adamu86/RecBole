@@ -167,8 +167,8 @@ for model_name in model_dict.keys():
 
             test_result = trainer.evaluate(test_data)
 
-            with open(f'saved/{model_name}_{dataset_name}/results.json', 'w') as f:
-                json.dump({"test_result": test_result}, f, indent=2)
+            with open(f'saved/{model_name}_{dataset_name}/results.json', 'w') as file_out:
+                json.dump({"test_result": test_result}, file_out, indent=2)
 
         except Exception as e:
             logger.error(e)
