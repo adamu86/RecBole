@@ -97,12 +97,9 @@ metrics: [
     "Recall",
     "Precision",
     "MRR",
-    # "MAP",
-    # "Hit",
     "NDCG",
     "AveragePopularity",
     "ItemCoverage",
-    # "GiniIndex",
   ] # (list or str) Evaluation metrics.
 topk: [5, 10, 20] # (list or int or None) The value of k for topk evaluation metrics.
 valid_metric: NDCG@20 # (str) The evaluation metric for early stopping.
