@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -16,9 +17,9 @@ try:
 except ImportError:
     fast_json = json
 
-mpl.use("Agg")
 
 COLOR = "#4a90e2"
+
 sns.set_palette([COLOR])
 mpl.rcParams.update({
     "font.family": "serif",
@@ -30,11 +31,6 @@ mpl.rcParams.update({
     "savefig.bbox": "tight",
 })
 
-OUTPUT_DIR = Path("documents")
-RAW_DIR = Path("dataset_raw")
-LASTFM_FILE = RAW_DIR / "userid-timestamp-artid-artname-traid-traname.tsv"
-MUSIC30_FILE = RAW_DIR / "sessions.idomaar"
-
 SESSION_INACTIVITY_GAP = 800
 
 def load_30music(path: Path):
@@ -42,37 +38,42 @@ def load_30music(path: Path):
     tracks = Counter()
     lengths = Counter()
     prefix = "event.session\t"
-    plen = len(prefix)
+    prefix_len = len(prefix)
 
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
-        for line in tqdm(fh, desc="30Music sessions"):
+    with open(path, "r", encoding="utf-8", errors="replace") as file_in:
+        for line in tqdm(file_in, desc="30Music sessions"):
             if not line.startswith(prefix):
                 continue
-            body = line[plen:]
+            session_data = line[prefix_len:]
+
             try:
-                t1 = body.find("\t")
-                t2 = body.find("\t", t1 + 1) if t1 != -1 else -1
-                if t2 == -1:
+                first_tab = session_data.find("\t")
+                second_tab = session_data.find("\t", first_tab + 1) if first_tab != -1 else -1
+
+                if second_tab == -1:
                     continue
 
-                ts = int(body[t1 + 1 : t2])
+                timestamp = int(session_data[first_tab + 1 : second_tab])
 
-                jstart = body.find("} {")
-                if jstart == -1:
+                json_start = session_data.find("} {")
+
+                if json_start == -1:
                     continue
 
-                session = fast_json.loads(body[jstart + 2 :].strip())
-                objs = session.get("objects", [])
-                if not objs:
+                session = fast_json.loads(session_data[json_start + 2 :].strip())
+                session_objects = session.get("objects", [])
+
+                if not session_objects:
                     continue
 
-                day = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+                day = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d")
                 daily[day] += 1
-                lengths[len(objs)] += 1
-                for t in objs:
-                    tid = t.get("id")
-                    if tid is not None:
-                        tracks[tid] += 1
+                lengths[len(session_objects)] += 1
+
+                for track in session_objects:
+                    track_id = track.get("id")
+                    if track_id is not None:
+                        tracks[track_id] += 1
             except Exception:
                 continue
 
@@ -82,65 +83,78 @@ def load_30music(path: Path):
 def load_lastfm(path: Path):
     user_events: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
-    def parse_iso_timestamp(ts: str) -> int | None:
+    def parse_iso_timestamp(timestamp: str) -> int | None:
         try:
-            year = int(ts[:4])
+            year = int(timestamp[:4])
             if not (2005 <= year <= 2009):
                 return None
             return int(datetime(
-                year, int(ts[5:7]), int(ts[8:10]),
-                int(ts[11:13]), int(ts[14:16]), int(ts[17:19]),
+                year, 
+                int(timestamp[5:7]), 
+                int(timestamp[8:10]),
+                int(timestamp[11:13]), 
+                int(timestamp[14:16]), 
+                int(timestamp[17:19]),
                 tzinfo=timezone.utc,
             ).timestamp())
         except Exception:
             return None
 
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
-        for line in tqdm(fh, desc="LastFM scrobbles"):
+    with open(path, "r", encoding="utf-8", errors="replace") as file_in:
+        for line in tqdm(file_in, desc="LastFM scrobbles"):
             parts = line.strip().split("\t")
+
             if len(parts) < 6:
                 continue
-            uid = parts[0].strip()
-            ts_str = parts[1].strip()
-            artist = parts[3].strip()
-            track = parts[5].strip()
-            if not uid or not artist or not track:
+
+            user_id = parts[0].strip()
+            timestamp = parse_iso_timestamp(parts[1].strip())
+            artist_name = parts[3].strip()
+            track_name = parts[5].strip()
+
+            if not user_id or not artist_name or not track_name:
                 continue
-            ts = parse_iso_timestamp(ts_str)
-            if ts is None:
+
+            if timestamp is None:
                 continue
-            user_events[uid].append((ts, f"{artist}/_/{track}"))
+
+            user_events[user_id].append((timestamp, f"{artist_name}/_/{track_name}"))
 
     daily = Counter()
     tracks = Counter()
     lengths = Counter()
 
-    for uid, evts in tqdm(user_events.items(), desc="Building sessions"):
-        evts.sort()
-        if not evts:
+    for user_id, events in tqdm(user_events.items(), desc="Building sessions"):
+        events.sort()
+        
+        if not events:
             continue
-        sess_start = evts[0][0]
-        prev_ts = sess_start
-        sess_tracks: list[str] = [evts[0][1]]
 
-        for ts, tk in evts[1:]:
-            if ts - prev_ts > SESSION_INACTIVITY_GAP:
-                day = datetime.fromtimestamp(sess_start, tz=timezone.utc).strftime("%Y-%m-%d")
+        session_start = events[0][0]
+        previous_timestamp = session_start
+        session_tracks: list[str] = [events[0][1]]
+
+        for timestamp, track in events[1:]:
+            if timestamp - previous_timestamp > SESSION_INACTIVITY_GAP:
+                day = datetime.fromtimestamp(session_start, tz=timezone.utc).strftime("%Y-%m-%d")
                 daily[day] += 1
-                lengths[len(sess_tracks)] += 1
-                for st in sess_tracks:
-                    tracks[st] += 1
-                sess_start = ts
-                sess_tracks = []
-            sess_tracks.append(tk)
-            prev_ts = ts
+                lengths[len(session_tracks)] += 1
 
-        if sess_tracks:
-            day = datetime.fromtimestamp(sess_start, tz=timezone.utc).strftime("%Y-%m-%d")
+                for session_track in session_tracks:
+                    tracks[session_track] += 1
+
+                session_start = timestamp
+                session_tracks = []
+            session_tracks.append(track)
+            previous_timestamp = timestamp
+
+        if session_tracks:
+            day = datetime.fromtimestamp(session_start, tz=timezone.utc).strftime("%Y-%m-%d")
             daily[day] += 1
-            lengths[len(sess_tracks)] += 1
-            for st in sess_tracks:
-                tracks[st] += 1
+            lengths[len(session_tracks)] += 1
+
+            for session_track in session_tracks:
+                tracks[session_track] += 1
 
     return daily, tracks, lengths
 
@@ -243,19 +257,22 @@ def print_stats(name: str, daily: Counter, tracks: Counter, lengths: Counter):
     print(f"      Tracks: {unique_items:,}")
 
 if __name__ == "__main__":
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    raw_dir = Path("dataset_raw")
+    lastfm1k = raw_dir / "userid-timestamp-artid-artname-traid-traname.tsv"
+    music30 = raw_dir / "sessions.idomaar"
 
-    daily_30, tracks_30, lengths_30 = load_30music(MUSIC30_FILE)
-    print_stats("30Music", daily_30, tracks_30, lengths_30)
-    plot_longtail(tracks_30, OUTPUT_DIR / "longtail_raw_30music.png")
-    plot_sessions_per_day(daily_30, OUTPUT_DIR / "sessions_per_day_raw_30music.png")
-    plot_session_lengths(lengths_30, OUTPUT_DIR / "session_lengths_raw_30music.png")
+    output_dir = Path("documents")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("\n\n\n")
+    daily_sessions_30music, tracks_30music, session_lengths_30music = load_30music(music30)
+    print_stats("30Music", daily_sessions_30music, tracks_30music, session_lengths_30music)
+    plot_longtail(tracks_30music, output_dir / "longtail_raw_30music.png")
+    plot_sessions_per_day(daily_sessions_30music, output_dir / "sessions_per_day_raw_30music.png")
+    plot_session_lengths(session_lengths_30music, output_dir / "session_lengths_raw_30music.png")
 
-    daily_lfm, tracks_lfm, lengths_lfm = load_lastfm(LASTFM_FILE)
-    print_stats("LastFM-1k", daily_lfm, tracks_lfm, lengths_lfm)
-    plot_longtail(tracks_lfm, OUTPUT_DIR / "longtail_raw_lastfm.png")
-    plot_sessions_per_day(daily_lfm, OUTPUT_DIR / "sessions_per_day_raw_lastfm.png")
-    plot_session_lengths(lengths_lfm, OUTPUT_DIR / "session_lengths_raw_lastfm.png")
+    daily_sessions_lastfm, tracks_lastfm, session_lengths_lastfm = load_lastfm(lastfm1k)
+    print_stats("LastFM-1k", daily_sessions_lastfm, tracks_lastfm, session_lengths_lastfm)
+    plot_longtail(tracks_lastfm, output_dir / "longtail_raw_lastfm.png")
+    plot_sessions_per_day(daily_sessions_lastfm, output_dir / "sessions_per_day_raw_lastfm.png")
+    plot_session_lengths(session_lengths_lastfm, output_dir / "session_lengths_raw_lastfm.png")
 
