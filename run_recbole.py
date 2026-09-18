@@ -167,11 +167,11 @@ for model_name in model_dict.keys():
 
             test_result = trainer.evaluate(test_data)
 
-            with open(f'saved/{model_name}_{dataset_name}/results_1.json', 'w') as f:
+            with open(f'saved/{model_name}_{dataset_name}/results.json', 'w') as f:
                 json.dump({"test_result": test_result}, f, indent=2)
 
         except Exception as e:
-            logger.error(f"Failed {model_name} on {dataset_name}: {e}")
+            logger.error(e)
             traceback.print_exc()
         finally:
             if model is not None:
@@ -193,6 +193,3 @@ for model_name in model_dict.keys():
 for dataset_name in dataset_dict.keys():
     if os.path.exists(f"recbole/properties/dataset/{dataset_name}.yaml"):
         os.remove(f"recbole/properties/dataset/{dataset_name}.yaml")
-
-
-
