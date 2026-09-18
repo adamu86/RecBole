@@ -43,13 +43,10 @@ def main():
 
     saved_dirs = sorted(glob.glob(f"saved/{model_name}_*"))
 
-    if not saved_dirs:
-        return
-
     for save_dir in saved_dirs:
-        out_json = f"{save_dir}/results_reranking.json"
+        results_json = f"{save_dir}/results_reranking.json"
         
-        if os.path.exists(out_json):
+        if os.path.exists(results_json):
             continue
 
         checkpoint_files = glob.glob(glob.escape(save_dir) + f"/{model_name}-*.pth")
@@ -102,7 +99,7 @@ def main():
             "reranking": {k: float(v) for k, v in rerank_result.items()}
         }
 
-        with open(out_json, 'w') as f:
+        with open(results_json, 'w') as f:
             json.dump(comparison, f, indent=2)
 
 if __name__ == "__main__":
