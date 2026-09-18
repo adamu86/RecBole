@@ -67,7 +67,7 @@ def fetch_artist_tags():
                     
     all_artists = sorted(list(artist_to_tracks.keys()), key=str.lower)
                 
-    print(f"Found tags for {len(existing_tags)}/{len(all_artists)} artists.")
+    print(f"Found tags for {len(existing_tags)}/{len(all_artists)} artists")
     
     with open(ARTIST_TAGS_FILE, 'w', encoding='utf-8') as file_out:
         for i, artist_name in enumerate(all_artists): 
