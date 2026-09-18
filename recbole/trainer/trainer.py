@@ -154,19 +154,14 @@ class Trainer(AbstractTrainer):
 
 
 
-        # parametr z pliku konfiguracyjnego określający ile najlepszych przewidywanych utworów jest branych pod uwagę podczas rerankingu
         conf_topk = self.config.final_config_dict.get("rerank_topk", None)
 
-        # jeśli topk w pliku konf. jest mniejsze równe 0 lub None to nic nie robimy
         self.rerank_topk = None if conf_topk is None or str(conf_topk).strip().lower() == "none" or conf_topk <= 0 else int(conf_topk)
         
-        # waga (siła) premii
         self.rerank_weight = float(self.config.final_config_dict.get("rerank_weight", 1.0))
 
-        # nazwa kolumny cech, określona w pliku konfiguracyjnym, na podstawie której rerankujemy
         self.rerank_field = str(self.config.final_config_dict.get("rerank_field", "feature"))
 
-        # pole do przechowywania zbiorów cech
         self.item_feature_sets = None
 
 
@@ -639,7 +634,6 @@ class Trainer(AbstractTrainer):
 
 
 
-        # czy reranking włączony 
         rerank_enabled = self._init_reranking(eval_data)
 
 
@@ -674,7 +668,6 @@ class Trainer(AbstractTrainer):
 
 
 
-            # zastosowanie rerankingu (jeśli jest włączony) na predykcjach modelu
             if rerank_enabled and "item_id_list" in interaction:
                 scores = self._rerank_scores(scores, self._session_feature_profiles(interaction))
 
@@ -752,64 +745,47 @@ class Trainer(AbstractTrainer):
 
 
     def _init_reranking(self, eval_data):
-        # jeśli topk nieustawiony to nie kontynuujemy mechanizmu
         if self.rerank_topk is None or not hasattr(eval_data, '_dataset'):
             return False
 
-        # wyciągamy zbiór testowy
         dataset = eval_data._dataset
 
-        # dataset musi mieć cechy elementów
         if not hasattr(dataset, 'item_feat') or dataset.item_feat is None:
             return False
             
-        # pobieramy nazwe kolumny z feature'ami do rerankingu
         field = self.rerank_field
         if field is None or field not in dataset.item_feat:
             return False
 
-        # pobieramy wektor cech
         features = dataset.item_feat[field]
 
-        # każdy element uzyskuje swoje cechy
         self.item_feature_sets = [set(row[row != 0].tolist()) for row in features]
 
-        # log
         self.logger.info(
             f"Reranking on '{field}': {len(self.item_feature_sets)} items, "
             f"topk={self.rerank_topk}, weight={self.rerank_weight}"
         )
 
-        # włączamy reranking
         return True
 
     def _session_feature_profiles(self, interaction):
-        # historia odsłuchanych utworów per sesja, w bieżącym batchu
         session_items = interaction["item_id_list"].cpu().numpy()
 
-        # ile realnych utworów ma każda sesja (reszta to padding zerami)
         session_lengths = interaction["item_length"].cpu().numpy()
 
-        # liczba wszystkich itemów w datasecie, do walidacji ID
         num_items = len(self.item_feature_sets)
         
-        # miejsce na profile cech dla każdej sesji
         profiles = []
 
-        # przechodzimy po każdej sesji w batchu osobno
         for session_idx in range(session_items.shape[0]):
-            # słownik na cechy sesji
             session_features = set()
 
-            # obcinamy padding, zostawiamy tylko realną historię tej sesji
             true_sequence = session_items[session_idx, :session_lengths[session_idx]]
 
-            # zbieramy cechy wszystkich utworów z historii do jednego wspólnego zbioru
             for item_id in true_sequence:
                 if 0 < item_id < num_items:
                     session_features.update(self.item_feature_sets[item_id])
 
-            # zapisujemy gotowy profil tagowy tej sesji
             profiles.append(session_features)
 
         return profiles
@@ -819,60 +795,43 @@ class Trainer(AbstractTrainer):
 
         batch_size = scores.size(0)
 
-        # rerankujemy tylko top-K kandydatów, nie całą listę itemów
         actual_k = min(self.rerank_topk, scores.size(1))
 
-        # wyciągamy indeksy (ID itemów) dla top-K najlepszych kandydatów każdej sesji
         _, topk_idx = torch.topk(scores, actual_k, dim=-1)
         topk_idx_cpu = topk_idx.cpu().numpy()
 
-        # tu będziemy zbierać premię (boost) dla każdego kandydata z top-K
         boosts = np.zeros((batch_size, actual_k), dtype=np.float32)
 
-        # maks. dozwolone ID itemu
         num_items = len(self.item_feature_sets)
 
-        # liczymy podobieństwo Jaccarda między profilem sesji a tagami każdego kandydata
         for session_idx in range(batch_size):
-            # profil cech sesji spod kolejnego session_idx
             session_tags = session_feature_profiles[session_idx]
 
-            # jeśli sesja bez żadnych tagów, to nie ma czego porównywać
             if not session_tags:
                 continue
 
             for rank in range(actual_k):
-                # kolejny kandydat z rekomendacji dla bieżącej sesji w pętli
                 candidate_id = topk_idx_cpu[session_idx, rank]
 
-                # 0 to padding, ID > num_items to błąd
                 if candidate_id <= 0 or candidate_id >= num_items:
                     continue
 
-                # pobieramy profil tagowy kandydata
                 candidate_tags = self.item_feature_sets[candidate_id]
 
-                # ilu wspólnych tagów ma kandydat z sesją
                 overlap = len(session_tags & candidate_tags)
 
                 if overlap:
-                    # Jaccard = część wspólna / suma zbiorów, przemnożona przez wagę (siłę premii)
                     jaccard = overlap / (len(session_tags) + len(candidate_tags) - overlap)
                     boosts[session_idx, rank] = self.rerank_weight * jaccard
 
-        # z powrotem na tensor (z cpu na gpu)
         boosts = torch.from_numpy(boosts).to(scores.device)
 
-        # wyciągamy oryginalne score'y tylko dla kandydatów z top-K
         topk_scores = scores.gather(1, topk_idx)
 
-        # aplikujemy boost mnożnikowo
         boosted_scores = topk_scores * (1.0 + boosts)
 
-        # podmieniamy zboostowane wartości z powrotem w oryginalnym tensorze score'ów
         scores.scatter_(1, topk_idx, boosted_scores)
 
-        # finalne wyniki
         return scores
 
 
