@@ -57,7 +57,7 @@ def main():
         if not checkpoint_files:
             continue
         
-        checkpoint_file = max(checkpoint_files, key=os.path.getmtime)
+        checkpoint_file = checkpoint_files[0]
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
