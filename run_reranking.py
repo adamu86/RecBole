@@ -71,6 +71,7 @@ def main():
 
         del model, trainer, dataset, train_data, valid_data, test_data
         gc.collect()
+        
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
@@ -91,6 +92,7 @@ def main():
 
         del model2, trainer2, dataset2, train_data2, valid_data2, test_data2
         gc.collect()
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 

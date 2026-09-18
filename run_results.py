@@ -129,9 +129,6 @@ def plot_grid(models, avg, output_path):
     plt.savefig(output_path, bbox_inches="tight", pad_inches=0.05)
     plt.close(fig)
 
-
-# --- Ładowanie wyników ---
-
 def load_baseline_results():
     results = defaultdict(lambda: defaultdict(list))
     if not SAVED_DIR.exists():
@@ -157,7 +154,6 @@ def load_baseline_results():
                 pass
     return results
 
-
 def load_modification_results():
     results = defaultdict(list)
     if not SAVED_DIR.exists():
@@ -180,7 +176,6 @@ def load_modification_results():
         if not g_data:
             continue
 
-        # GRU4RecF + reranking
         f_dir = SAVED_DIR / f"GRU4RecF_{suffix}"
         rerank_file = f_dir / "results_reranking.json"
 
@@ -206,9 +201,6 @@ def load_modification_results():
         results[ds_group].append(split)
 
     return results
-
-
-# --- Generowanie wykresów ---
 
 def generate_baseline(ds_group, model_splits):
     models = [m for m in model_splits if m.upper() != "GRU4RECF"]
